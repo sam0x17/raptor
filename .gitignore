@@ -1,0 +1,12 @@
+*~
+log
+*.log
+*.out
+tmp
+/pkg/
+/tmp/
+*.gem
+/.bundle/
+/vendor/.bundle
+/lib/bundle/man
+
