@@ -9,4 +9,5 @@ tmp
 /.bundle/
 /vendor/.bundle
 /lib/bundle/man
-
+*.project
+.project
