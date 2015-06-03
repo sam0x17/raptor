@@ -4,32 +4,24 @@ module RAPTOR
     attr_accessor :grid_height
     attr_reader :colors
 
-    def initialize
-      self.grid_width = 128
-      self.grid_height = 128
+    def initialize(options={})
+      self.grid_width = options.has_key?(:grid_width) ? options[:grid_width].to_i : 128
+      self.grid_height = options.has_key?(:grid_height) ? options[:grid_height].to_i : 128
       @colors = {}
       @grid = {}
     end
 
-    def [](key)
-      validate_key! key
-      return @grid[[key[:x], key[:y]]]
+    def [](x, y, c=nil)
+      raise InvalidKeyError if x.nil? || y.nil?
+      x = x.to_i
+      y = y.to_i
+      raise OutOfGridBoundsError if x < 0 || x >= grid_width || y < 0 || y >= grid_height
     end
 
     class InvalidKeyError < StandardError
     end
 
-    protected
-
-    def key_valid?(key)
-      !(!key.has_key?(:x) || !key.has_key?(:y) ||
-      key[:x].nil? || key[:y].nil? ||
-      key[:x] < 0 || key[:y] < 0 ||
-      key[:x] > grid_width - 1 || key[:y] > grid_height - 1)
-    end
-
-    def validate_key!(key)
-      raise InvalidKeyError if !key_valid?(key)
+    class OutOfGridBoundsError < StandardError
     end
 
   end
