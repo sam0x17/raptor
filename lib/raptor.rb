@@ -3,6 +3,7 @@ require 'oily_png'
 module RAPTOR
 
   def self.test
+    dir = 'data'
     img = ChunkyPNG::Image.from_file 'test.png'
     unique_colors = {}
     num_non_transparent_colors = 0
