@@ -24,8 +24,8 @@ module RAPTOR
     def add_sample(params={})
       @compiled = true
       required_params = [:x, :y, :color, :rx, :ry, :rz]
-      required_params.each {|p| raise MissingRequiredParamError if !params.include?(p) }
-      params.each {|p| raise UnsupportedParamError < StandardError if !required_params.include?(p) }
+      required_params.each {|p| raise MissingRequiredParamError if !params.keys.include?(p) }
+      params.keys.each {|p| raise UnsupportedParamError if !required_params.include?(p) }
       x = params[:x].to_i
       y = params[:y].to_i
       color = params[:color]
@@ -36,12 +36,23 @@ module RAPTOR
       rot = [rx, ry, rz]
       raise InvalidKeyError if x.nil? || y.nil?
       raise OutOfGridBoundsError if x < 0 || x >= grid_width || y < 0 || y >= grid_height
-      grid[pos] = {} if !grid.has_key?(pos)
-      grid[pos][color] = {} if !grid[pos].has_key?(color)
+      @grid[pos] = {} if !@grid.has_key?(pos)
+      @grid[pos][color] = {} if !@grid[pos].has_key?(color)
       @rotations[rot] = @rotations.size if !@rotations.has_key?(rot)
       rot_id = @rotations[rot]
-      grid[pos][color][rot_id] = 0 if !grid[pos][color].has_key?(rot_id)
-      grid[pos][color][rot_id] += 1
+      @grid[pos][color][rot_id] = 0 if !@grid[pos][color].has_key?(rot_id)
+      @grid[pos][color][rot_id] += 1
+    end
+
+    def compile
+      @grid.each do |pos, pos_row|
+        pos_row.each do |color, color_row|
+          color_row.each do |rot_id, rot_id_count|
+            @grid[pos][color][rot_id] = rot_id_count / color_row.size
+          end
+        end
+      end
+      @compiled = true
     end
 
     class InvalidKeyError < StandardError
@@ -51,6 +62,9 @@ module RAPTOR
     end
 
     class MissingRequiredParamError < StandardError
+    end
+
+    class UnsupportedParamError < StandardError
     end
 
   end
