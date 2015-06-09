@@ -1,7 +1,7 @@
 require 'facter'
 module RAPTOR
   module DataGenerator
-    
+
     def self.generate_pose(options={})
       set_default = Proc.new {|key,value| options[key] = value if !options.has_key?(key) }
       set_default.(:rx, rand(0.0..360))
@@ -15,7 +15,7 @@ module RAPTOR
        width: options[:width], height: options[:height],
        model: options[:model], img_filename: options[:img_filename]}
     end
-    
+
     def self.render_pose(pose={})
       required_params = [:rx, :ry, :rz, :width, :height, :model, :img_filename]
       pose.keys.each {|param_key| raise UnsupportedParamError if !required_params.include?(param_key)}
@@ -26,12 +26,12 @@ module RAPTOR
               "img_filename" => pose[:img_filename]},
               'blender -b -P render.py')
     end
-    
+
     def self.render_random_pose(options={})
       pose = RAPTOR::DataGenerator.generate_pose(options)
       RAPTOR::DataGenerator.render_pose(pose)
     end
-    
+
     def self.render_partitions(points_per_dimension=16, options={})
       data_directory = 'output'
       points_per_dimension -= 1
@@ -48,7 +48,7 @@ module RAPTOR
           end
         end
       end
-      num_cores = Facter.value('processors')['count'] + 1
+      num_cores = Facter.value('processors')['count']
       last_core = 0
       core_sets = {}
       num_cores.times do |core_num|
@@ -69,6 +69,10 @@ module RAPTOR
             rz = rot[2]
             pose = {}
             pose[:img_filename] = "#{data_directory}/#{rx}_#{ry}_#{rz}.png"
+            if File.exist?(pose[:img_filename])
+              puts "Skipping pose that already exists: #{[rx, ry, rz]} : #{pose[:img_filename]}"
+              next
+            end
             puts "Rotation: #{[rx, ry, rz]}"
             puts "Rendering #{options[:img_filename]}"
             pose[:width] = options[:width] if options[:width]
@@ -87,12 +91,12 @@ module RAPTOR
       puts "Successfully rendered #{final_set.size} samples!"
       true
     end
-    
+
     class UnsupportedParamError < StandardError
     end
-    
+
     class MissingRequiredParamError < StandardError
     end
-    
+
   end
 end
