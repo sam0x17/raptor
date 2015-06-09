@@ -11,3 +11,4 @@ tmp
 /lib/bundle/man
 *.project
 .project
+output.png
