@@ -12,3 +12,4 @@ tmp
 *.project
 .project
 output.png
+/output/*.png
