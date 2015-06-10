@@ -20,6 +20,7 @@ module RAPTOR
       rescue ActiveRecord::StatementInvalid => e
         puts "connected to RAPTOR PostgreSQL database ('#{@@db['db_name']}')"
       end
+      ActiveRecord::Migration.execute('CREATE EXTENSION IF NOT EXISTS hstore')
       begin
         RAPTOR::Database.init_tables_and_models
         puts "initialized samples table"
@@ -30,13 +31,14 @@ module RAPTOR
     end
 
     def self.clear_data
-      RAPTOR::Sample.delete_all
-      ActiveRecord::Base.connection.reset_pk_sequence!(RAPTOR::Sample.table_name)
+      RAPTOR::Activation.delete_all
+      ActiveRecord::Base.connection.reset_pk_sequence!(RAPTOR::Activation.table_name)
       true
     end
 
     def self.reset_db
-      ActiveRecord::Migration.drop_table(:samples)
+      ActiveRecord::Migration.drop_table(:activations)
+      ActiveRecord::Migration.execute('CREATE EXTENSION IF NOT EXISTS hstore')
       begin
         RAPTOR::Database.init_tables_and_models
       rescue
@@ -46,23 +48,18 @@ module RAPTOR
     end
 
     def self.init_tables_and_models
-      if !ActiveRecord::Base.connection.table_exists? :samples
+      if !ActiveRecord::Base.connection.table_exists? :activations
         ActiveRecord::Schema.define do
-          create_table :samples do |t|
+          create_table :activations do |t|
             t.integer :x, limit: 2, null: false
             t.integer :y, limit: 2, null: false
             t.integer :color, limit: 8, null: false
-            t.integer :rx, limit: 2, null: false
-            t.integer :ry, limit: 2, null: false
-            t.integer :rz, limit: 2, null: false
-            t.float :probability, default: 0.0, index: true
-            t.integer :count, limit: 3, default: 0, index: true
+            t.hstore :data, default: {}
           end
-          add_index "samples_pos_lookup_index".to_sym, [:x, :y, :color]
-          add_index "samples_pos_col_index".to_sym, [:x, :y, :color, :rx, :ry, :rz], unique: true
+          add_index "activations_pos_lookup_index".to_sym, [:x, :y, :color], unique: true
         end
       end
-      eval("require 'raptor/sample'", TOPLEVEL_BINDING)
+      eval("require 'raptor/activation'", TOPLEVEL_BINDING)
       true
     end
 
