@@ -58,7 +58,7 @@ module RAPTOR
             t.float :probability, default: 0.0, index: true
             t.integer :count, default: 0, index: true
           end
-          add_index "samples_pos_index".to_sym, [:rx, :ry]
+          add_index "samples_pos_col_index".to_sym, [:x, :y, :color]
         end
       end
       eval("require 'raptor/sample'", TOPLEVEL_BINDING)

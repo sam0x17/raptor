@@ -59,7 +59,7 @@ module RAPTOR
       @compiled = true
     end
 
-    def process_image(img_path, grid_hash = nil)
+    def process_image(img_path)
       rot = File.basename(img_path, ".png").split("_").collect {|e| e.to_i}
       rx = rot[0]
       ry = rot[1]
