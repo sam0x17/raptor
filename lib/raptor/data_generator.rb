@@ -61,8 +61,8 @@ module RAPTOR
       end
       threads = []
       core_sets.values.each do |core_set|
+        cset = core_set.clone
         threads << Thread.new do
-          cset = core_set.clone
           cset.each do |rot|
             rx = rot[0]
             ry = rot[1]
