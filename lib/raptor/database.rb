@@ -49,16 +49,17 @@ module RAPTOR
       if !ActiveRecord::Base.connection.table_exists? :samples
         ActiveRecord::Schema.define do
           create_table :samples do |t|
-            t.integer :x, null: false
-            t.integer :y, null: false
-            t.integer :color, null: false
-            t.integer :rx, null: false
-            t.integer :ry, null: false
-            t.integer :rz, null: false
+            t.integer :x, limit: 2, null: false
+            t.integer :y, limit: 2, null: false
+            t.integer :color, limit: 8, null: false
+            t.integer :rx, limit: 2, null: false
+            t.integer :ry, limit: 2, null: false
+            t.integer :rz, limit: 2, null: false
             t.float :probability, default: 0.0, index: true
-            t.integer :count, default: 0, index: true
+            t.integer :count, limit: 3, default: 0, index: true
           end
-          add_index "samples_pos_col_index".to_sym, [:x, :y, :color]
+          add_index "samples_pos_lookup_index".to_sym, [:x, :y, :color]
+          add_index "samples_pos_col_index".to_sym, [:x, :y, :color, :rx, :ry, :rz], unique: true
         end
       end
       eval("require 'raptor/sample'", TOPLEVEL_BINDING)
