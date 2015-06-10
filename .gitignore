@@ -13,3 +13,4 @@ tmp
 .project
 output.png
 /output/*.png
+/config/database.yml

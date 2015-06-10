@@ -1,0 +1,7 @@
+# example database.yml file (you need to create a file called database.yml
+# in the config directory, and have PostgreSQL set up properly for RAPTOR
+# to work correctly
+database:
+  db_name: 'raptor'
+  username: 'sam'
+  password: 'example_password'
