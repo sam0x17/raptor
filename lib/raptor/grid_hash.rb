@@ -23,19 +23,19 @@ module RAPTOR
 
     def add_sample(params={})
       @compiled = true
-      required_params = [:x, :y, :color, :rx, :ry, :rz]
-      required_params.each {|p| raise MissingRequiredParamError if !params.keys.include?(p) }
-      params.keys.each {|p| raise UnsupportedParamError if !required_params.include?(p) }
-      x = params[:x].to_i
-      y = params[:y].to_i
+      #required_params = [:x, :y, :color, :rx, :ry, :rz]
+      #required_params.each {|p| raise MissingRequiredParamError if !params.keys.include?(p) }
+      #params.keys.each {|p| raise UnsupportedParamError if !required_params.include?(p) }
+      x = params[:x]
+      y = params[:y]
       color = params[:color]
       rx = params[:rx]
       ry = params[:ry]
       rz = params[:rz]
       pos = [x, y]
       rot = [rx, ry, rz]
-      raise InvalidKeyError if x.nil? || y.nil?
-      raise OutOfGridBoundsError if x < 0 || x >= grid_width || y < 0 || y >= grid_height
+      #raise InvalidKeyError if x.nil? || y.nil?
+      #raise OutOfGridBoundsError if x < 0 || x >= grid_width || y < 0 || y >= grid_height
       @grid[pos] = {} if !@grid.has_key?(pos)
       @grid[pos][color] = {} if !@grid[pos].has_key?(color)
       @rotations[rot] = @rotations.size if !@rotations.has_key?(rot)
@@ -47,12 +47,35 @@ module RAPTOR
     def compile
       @grid.each do |pos, pos_row|
         pos_row.each do |color, color_row|
+          total_rotations = 0
+          color_row.each do |rot_id, rot_id_count|
+            total_rotations += rot_id_count
+          end
           color_row.each do |rot_id, rot_id_count|
             @grid[pos][color][rot_id] = rot_id_count / color_row.size
           end
         end
       end
       @compiled = true
+    end
+
+    def process_image(img_path, grid_hash = nil)
+      rot = File.basename(img_path, ".png").split("_").collect {|e| e.to_i}
+      rx = rot[0]
+      ry = rot[1]
+      rz = rot[2]
+      img = ChunkyPNG::Image.from_file img_path
+      self.grid_height = img.dimension.height
+      self.grid_width = img.dimension.width
+      total = 0
+      img.dimension.width.times do |col|
+        img.dimension.height.times do |row|
+          color = img[col, row]
+          total += color
+          add_sample(x: col, y: row, color: img[col, row], rx: rx, ry: ry, rz: rz)
+        end
+      end
+      puts total
     end
 
     class InvalidKeyError < StandardError
