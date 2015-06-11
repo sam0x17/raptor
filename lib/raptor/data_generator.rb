@@ -7,8 +7,8 @@ module RAPTOR
       set_default.(:rx, rand(0.0..360))
       set_default.(:ry, rand(0.0..360))
       set_default.(:rz, rand(0.0..360))
-      set_default.(:width, 600)
-      set_default.(:height, 600)
+      set_default.(:width, 150)
+      set_default.(:height, 150)
       set_default.(:model, 'models/hamina.3DS')
       set_default.(:img_filename, 'output.png')
       {rx: options[:rx], ry: options[:ry], rz: options[:rz],
@@ -36,6 +36,7 @@ module RAPTOR
       data_directory = 'output'
       points_per_dimension -= 1
       step = 360 / points_per_dimension
+      points_per_dimension -= 1
       rx_set = (0..points_per_dimension).to_a.collect { |n| n * step }
       ry_set = rx_set.clone
       rz_set = rx_set.clone
