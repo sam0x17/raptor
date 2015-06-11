@@ -1,6 +1,5 @@
 require 'raptor/grid_hash'
 require 'raptor/data_generator'
-require 'raptor/database'
 require 'oily_png'
 module RAPTOR
   def self.register_data(params={})
@@ -10,7 +9,7 @@ module RAPTOR
     rx = params[:rx]
     ry = params[:ry]
     rz = params[:rz]
-    act = RAPTOR::Activation.where(x: x, y: y, color: color).first_or_initialize
+    #act = RAPTOR::Activation.where(x: x, y: y, color: color).first_or_initialize
     data = act.data
     key = [rx, ry, rz]
     data[key] = 0 if !data.has_key?(key)
@@ -34,13 +33,12 @@ module RAPTOR
       end
     end
   end
-  
+
   def self.process_images(dir)
     Dir.glob("#{dir}/**/*.png") do |file|
       puts "Adding activations for #{file}..."
       process_image(file)
     end
   end
-  
+
 end
-RAPTOR::Database.load_db_config
