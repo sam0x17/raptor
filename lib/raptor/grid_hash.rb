@@ -14,49 +14,60 @@ module RAPTOR
       @compiled = false
     end
 
-    def [](x, y, c=nil)
-      raise InvalidKeyError if x.nil? || y.nil?
+    def [](x, y, c)
       x = x.to_i
       y = y.to_i
-      raise OutOfGridBoundsError if x < 0 || x >= grid_width || y < 0 || y >= grid_height
+      c = c.to_i
     end
 
-    def add_sample(params={})
+    def register_activation(params={})
       @compiled = true
-      #required_params = [:x, :y, :color, :rx, :ry, :rz]
-      #required_params.each {|p| raise MissingRequiredParamError if !params.keys.include?(p) }
-      #params.keys.each {|p| raise UnsupportedParamError if !required_params.include?(p) }
       x = params[:x]
       y = params[:y]
       color = params[:color]
       rx = params[:rx]
       ry = params[:ry]
       rz = params[:rz]
-      pos = [x, y]
+      key = [x, y, color]
       rot = [rx, ry, rz]
-      #raise InvalidKeyError if x.nil? || y.nil?
-      #raise OutOfGridBoundsError if x < 0 || x >= grid_width || y < 0 || y >= grid_height
-      @grid[pos] = {} if !@grid.has_key?(pos)
-      @grid[pos][color] = {} if !@grid[pos].has_key?(color)
+      @grid[key] = [] if !@grid.has_key?(key)
       @rotations[rot] = @rotations.size if !@rotations.has_key?(rot)
       rot_id = @rotations[rot]
-      @grid[pos][color][rot_id] = 0 if !@grid[pos][color].has_key?(rot_id)
-      @grid[pos][color][rot_id] += 1
+      @grid[key] << rot_id
     end
 
-    def compile
-      @grid.each do |pos, pos_row|
-        pos_row.each do |color, color_row|
-          total_rotations = 0
-          color_row.each do |rot_id, rot_id_count|
-            total_rotations += rot_id_count
-          end
-          color_row.each do |rot_id, rot_id_count|
-            @grid[pos][color][rot_id] = rot_id_count / color_row.size
+    def identify_rotation(img)
+      img = ChunkyPNG::Image.from_file(img) if img.is_a? String
+      counts = {}
+      @rotations.each do |rot, rot_id|
+        counts[rot_id] = 1
+      end
+      total_rots = 0
+      img.dimension.width.times do |x|
+        img.dimension.height.times do |y|
+          color = img[x, y]
+          next if color == 0
+          key = [x, y, color]
+          rots = @grid[key]
+          rots.each do |rot_id|
+            counts[rot_id] += 1
+            total_rots += 1
           end
         end
       end
-      @compiled = true
+      counts = counts.sort_by(&:last)
+      rots_inverted = @rotations.invert
+      counts.last(20).each do |rot_id, count|
+        puts "#{rots_inverted[rot_id]} => #{count}"
+      end
+      true
+    end
+
+    def analyze
+      @grid.each do |key, rots|
+        puts "#{rots}" if rots.size > 1
+      end
+      true
     end
 
     def process_image(img_path)
@@ -71,23 +82,19 @@ module RAPTOR
       img.dimension.width.times do |col|
         img.dimension.height.times do |row|
           color = img[col, row]
-          total += color
-          add_sample(x: col, y: row, color: img[col, row], rx: rx, ry: ry, rz: rz)
+          next if color == 0
+          register_activation(x: col, y: row, color: img[col, row], rx: rx, ry: ry, rz: rz)
         end
       end
-      puts total
     end
 
-    class InvalidKeyError < StandardError
-    end
-
-    class OutOfGridBoundsError < StandardError
-    end
-
-    class MissingRequiredParamError < StandardError
-    end
-
-    class UnsupportedParamError < StandardError
+    def process_images(dir)
+      i = 0
+      Dir.glob("#{dir}/**/*.png") do |file|
+        puts "Adding activations for #{file} (#{i})"
+        process_image(file)
+        i += 1
+      end
     end
 
   end
