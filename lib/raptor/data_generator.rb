@@ -7,8 +7,8 @@ module RAPTOR
       set_default.(:rx, rand(0.0..360))
       set_default.(:ry, rand(0.0..360))
       set_default.(:rz, rand(0.0..360))
-      set_default.(:width, 150)
-      set_default.(:height, 150)
+      set_default.(:width, 60)
+      set_default.(:height, 60)
       set_default.(:model, 'models/hamina.3DS')
       set_default.(:img_filename, 'output.png')
       {rx: options[:rx], ry: options[:ry], rz: options[:rz],
@@ -25,6 +25,9 @@ module RAPTOR
               "width" => pose[:width].to_s, "height" => pose[:height].to_s,
               "img_filename" => pose[:img_filename]},
               'blender -b -P render.py')
+      img = ChunkyPNG::Image.from_file(pose[:img_filename])
+      img = RAPTOR.test_filter(img)
+      img.save(pose[:img_filename])
     end
 
     def self.render_random_pose(options={})
@@ -55,7 +58,7 @@ module RAPTOR
       num_cores.times do |core_num|
         core_sets[core_num] = []
       end
-      final_set.each do |val|
+      final_set.first(2000).each do |val|
         core_sets[last_core] << val
         last_core += 1
         last_core = 0 if last_core >= num_cores

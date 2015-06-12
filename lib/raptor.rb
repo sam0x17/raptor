@@ -3,8 +3,8 @@ require 'raptor/data_generator'
 require 'oily_png'
 module RAPTOR
   
-  def self.test_filter(img_path)
-    img = ChunkyPNG::Image.from_file img_path
+  def self.test_filter(img)
+    img = ChunkyPNG::Image.from_file(img) if img.is_a? String
     width = img.dimension.width
     height = img.dimension.height
     width.times do |x|
@@ -34,25 +34,26 @@ module RAPTOR
         ps.each {|pos| colors << ChunkyPNG::Color.to_hsv(img[pos[0], pos[1]], true)}
         colors.reject! {|color| color == [0, 0.0, 0.0, 0]}
         final_color = [0, 0.0, 0.0, 0]
+        old_color_hsv = ChunkyPNG::Color.to_hsv(old_color, true)
         colors.each do |color|
-          final_color[0] += color[0]
-          final_color[1] += color[1]
-          final_color[2] += color[2]
-          final_color[3] += color[3]
+          final_color[0] += (color[0] - old_color_hsv[0]).abs
+          final_color[1] += (color[1] - old_color_hsv[1]).abs
+          final_color[2] += (color[2] - old_color_hsv[2]).abs
+          final_color[3] += (color[3] - old_color_hsv[3]).abs
         end
         final_color[0] /= colors.size
         final_color[1] /= colors.size
         final_color[2] /= colors.size
         final_color[3] /= colors.size
-        puts "FINAL_COLOR: #{final_color}"
-        img[x, y] = ChunkyPNG::Color.from_hsv(final_color[0].abs, final_color[1], final_color[2], final_color[3].to_i)
+        img[x, y] = ChunkyPNG::Color.from_hsv(final_color[0], final_color[1], final_color[2], final_color[3])
         #colors.reject! {|color| color == 0}
         #colors.each {|color| ratio_sum += old_color.to_f / color.to_f}
         #ratio = ratio_sum / colors.size
         #puts "#{[x, y]}: #{ratio}"
       end
     end
-    img.save('test_output.png')
+    #img.save('test_output.png')
+    img
   end
   
 end
