@@ -58,7 +58,7 @@ module RAPTOR
       num_cores.times do |core_num|
         core_sets[core_num] = []
       end
-      final_set.first(2000).each do |val|
+      final_set.each do |val|
         core_sets[last_core] << val
         last_core += 1
         last_core = 0 if last_core >= num_cores

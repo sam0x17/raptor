@@ -2,7 +2,7 @@ require 'raptor/grid_hash'
 require 'raptor/data_generator'
 require 'oily_png'
 module RAPTOR
-  
+
   def self.test_filter(img)
     img = ChunkyPNG::Image.from_file(img) if img.is_a? String
     width = img.dimension.width
@@ -46,14 +46,10 @@ module RAPTOR
         final_color[2] /= colors.size
         final_color[3] /= colors.size
         img[x, y] = ChunkyPNG::Color.from_hsv(final_color[0], final_color[1], final_color[2], final_color[3])
-        #colors.reject! {|color| color == 0}
-        #colors.each {|color| ratio_sum += old_color.to_f / color.to_f}
-        #ratio = ratio_sum / colors.size
-        #puts "#{[x, y]}: #{ratio}"
       end
     end
     #img.save('test_output.png')
     img
   end
-  
+
 end
