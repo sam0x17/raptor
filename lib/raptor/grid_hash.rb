@@ -7,6 +7,7 @@ module RAPTOR
       @grid = {}
       @rotations = {}
       @num_pixels = 0
+      @rots_inverted = nil
     end
 
     def [](x, y, c)
@@ -42,6 +43,7 @@ module RAPTOR
         img.dimension.height.times do |y|
           color = img[x, y]
           next if color == 0
+          color = @color_mappings[color]
           key = [x, y, color]
           rots = @grid[key]
           rots.each do |rot_id|
@@ -51,19 +53,29 @@ module RAPTOR
         end
       end
       counts = counts.sort_by(&:last)
-      rots_inverted = @rotations.invert
+      @rots_inverted = @rotations.invert if @rots_inverted.nil?
       counts.last(20).each do |rot_id, count|
-        puts "#{rots_inverted[rot_id]} => #{count}"
+        puts "#{@rots_inverted[rot_id]} => #{count}"
       end
       true
     end
     
     def self.closest_color(color, set)
-      best_match_num = 99999999.0
+      best_deltaE = nil
       best_match = nil
       set.each do |col|
-        
+        deltaE = color.get_deltaE(col)
+        if best_match.nil?
+          best_match = col
+          best_deltaE = deltaE
+          next
+        end
+        if deltaE < best_deltaE
+          best_match = col
+          best_deltaE = deltaE
+        end
       end
+      best_match
     end
 
     def process_images(dir, num_colors=20)
@@ -82,39 +94,91 @@ module RAPTOR
         uniq << SortableColor.new(col)
       end
       uniq.sort!
+      @unique_colors = uniq
+      
       puts "Done sorting."
-      puts "Performing color segmentation..."
-      num_to_generate = (0.01 * @unique_colors.size).to_i
+      puts "Performing color indexing..."
+      num_to_generate = 50
+      num_to_generate -= 1
       step = @unique_colors.size / num_to_generate
       @indexed_colors = []
       (0..num_to_generate).to_a.each do |num|
         index = num * step
         @indexed_colors << @unique_colors[index]
       end
+      puts "Generated index set, simplifying grid..."
+      grid_tmp = {}
+      @color_mappings = {}
+      grid_mod_count = 0
+      anticipated_grid_mods = @grid.keys.size
       @grid.each do |grid_key, grid_value|
-        puts "Applying index to #{grid_key}"
+        grid_mod_count += 1
         @grid.delete(grid_key)
-        
+        orig = SortableColor.new(grid_key[2])
+        closest = RAPTOR::GridHash.closest_color(orig, @indexed_colors)
+        @color_mappings[grid_key[2]] = closest.color_chunky
+        grid_key = [grid_key[0], grid_key[1], closest.color_chunky]
+        grid_tmp[grid_key] = [] if !grid_tmp.has_key?(grid_key)
+        grid_tmp[grid_key] += grid_value
+        puts "#{grid_mod_count} / #{anticipated_grid_mods} grid modifications" if grid_mod_count % 100 == 0
       end
+      @grid = grid_tmp
+      puts "# of colors before indexing: #{@unique_colors.size}"
+      puts "# of colors after indexing: #{@indexed_colors.size}"
+      puts "done"
       true
     end
 
     class SortableColor
-      @color = nil
       BASE = Color::RGB.new(255, 255, 255).to_lab
 
       def initialize(color)
-        @color = color
+        @color_chunky = color
+        bytes = ChunkyPNG::Color.to_truecolor_bytes(color)
+        @color_rgb = Color::RGB.new(bytes[0], bytes[1], bytes[2])
+        @color_lab = @color_rgb.to_lab
+      end
+      
+      def get_deltaE_comparison(other)
+        self_deltaE = @color_rgb.delta_e94(BASE, @color_lab)
+        other_deltaE = @color_rgb.delta_e94(BASE, other.instance_variable_get(:@color_lab))
+        [self_deltaE, other_deltaE]
+      end
+      
+      def >(other)
+        deltaE = get_deltaE_comparison(other)
+        deltaE[0] > deltaE[1]
+      end
+      
+      def <(other)
+        deltaE = get_deltaE_comparison(other)
+        deltaE[0] < deltaE[1]
+      end
+      
+      def ==(other)
+        deltaE = get_deltaE_comparison(other)
+        deltaE[0] == deltaE[1]
       end
 
       def <=>(other)
-        c1 = ChunkyPNG::Color.to_truecolor_bytes(@color)
-        c1 = Color::RGB.new(c1[0], c1[1], c1[2])
-        c2 = ChunkyPNG::Color.to_truecolor_bytes(other.instance_variable_get(:@color))
-        c2 = Color::RGB.new(c2[0], c2[1], c2[2])
-        c1_deltaE = c1.delta_e94(BASE, c1.to_lab)
-        c2_deltaE = c2.delta_e94(BASE, c2.to_lab)
-        c1_deltaE <=> c2_deltaE
+        deltaE = get_deltaE_comparison(other)
+        deltaE[0] <=> deltaE[1]
+      end
+      
+      def get_deltaE(other)
+        @color_rgb.delta_e94(@color_lab, other.color_lab)
+      end
+      
+      def color_chunky
+        @color_chunky
+      end
+      
+      def color_rgb
+        @color_rgb
+      end
+      
+      def color_lab
+        @color_lab
       end
     end
 
