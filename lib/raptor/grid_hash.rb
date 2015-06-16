@@ -57,8 +57,16 @@ module RAPTOR
       end
       true
     end
+    
+    def self.closest_color(color, set)
+      best_match_num = 99999999.0
+      best_match = nil
+      set.each do |col|
+        
+      end
+    end
 
-    def process_images(dir)
+    def process_images(dir, num_colors=20)
       i = 0
       Dir.glob("#{dir}/**/*.png") do |file|
         puts "Adding activations for #{file} \t(#{i})"
@@ -69,26 +77,44 @@ module RAPTOR
       puts "Total unique colors: #{@unique_colors.size}"
       puts "Sorting unique colors..."
       @unique_colors = @unique_colors.keys
-
-      ChunkyPNG::Color.to_rgb(col)
+      uniq = []
+      @unique_colors.each do |col|
+        uniq << SortableColor.new(col)
+      end
+      uniq.sort!
+      puts "Done sorting."
+      puts "Performing color segmentation..."
+      num_to_generate = (0.01 * @unique_colors.size).to_i
+      step = @unique_colors.size / num_to_generate
+      @indexed_colors = []
+      (0..num_to_generate).to_a.each do |num|
+        index = num * step
+        @indexed_colors << @unique_colors[index]
+      end
+      @grid.each do |grid_key, grid_value|
+        puts "Applying index to #{grid_key}"
+        @grid.delete(grid_key)
+        
+      end
+      true
     end
 
     class SortableColor
       @color = nil
+      BASE = Color::RGB.new(255, 255, 255).to_lab
 
       def initialize(color)
         @color = color
       end
 
       def <=>(other)
-        is_neg = c1 < c2
-        c1 = ChunkyPNG::Color.to_rgb(@color)
+        c1 = ChunkyPNG::Color.to_truecolor_bytes(@color)
         c1 = Color::RGB.new(c1[0], c1[1], c1[2])
-        c2 = ChunkyPNG::Color.to_rgb(other.get_instance_variable(:@color))
+        c2 = ChunkyPNG::Color.to_truecolor_bytes(other.instance_variable_get(:@color))
         c2 = Color::RGB.new(c2[0], c2[1], c2[2])
-        deltaE = col1.delta_e94(c1.to_lab, c2.to_lab)
-        detaE *= -1 if neg
-        deltaE
+        c1_deltaE = c1.delta_e94(BASE, c1.to_lab)
+        c2_deltaE = c2.delta_e94(BASE, c2.to_lab)
+        c1_deltaE <=> c2_deltaE
       end
     end
 
