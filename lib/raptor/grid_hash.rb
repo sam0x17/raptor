@@ -6,6 +6,7 @@ module RAPTOR
       @unique_colors = {}
       @grid = {}
       @rotations = {}
+      @color_mappings = {}
       @num_pixels = 0
       @rots_inverted = nil
     end
@@ -59,7 +60,7 @@ module RAPTOR
       end
       true
     end
-    
+
     def self.closest_color(color, set)
       best_deltaE = nil
       best_match = nil
@@ -78,55 +79,76 @@ module RAPTOR
       best_match
     end
 
-    def process_images(dir, num_colors=20)
-      i = 0
+    def process_images(dir, num_index_colors=50)
+      @unique_colors = {}
+      @grid = {}
+      @rotations = {}
+      @num_pixels = 0
+      @color_mappings = {}
+      @indexed_colors = []
+      i = 1
+      puts "Collecting color information..."
       Dir.glob("#{dir}/**/*.png") do |file|
-        puts "Adding activations for #{file} \t(#{i})"
-        process_image(file)
+        puts "Processed up to #{file}\t(#{i})" if i % 1000 == 0
+        collect_image_color_data(file)
         i += 1
       end
+      num_images = i
+      puts "Completed initial pass"
+      puts "Total images: #{num_images}"
       puts "Total pixels processed: #{@num_pixels}"
       puts "Total unique colors: #{@unique_colors.size}"
-      puts "Sorting unique colors..."
-      @unique_colors = @unique_colors.keys
-      uniq = []
-      @unique_colors.each do |col|
-        uniq << SortableColor.new(col)
-      end
-      uniq.sort!
-      @unique_colors = uniq
-      
-      puts "Done sorting."
-      puts "Performing color indexing..."
-      num_to_generate = 50
-      num_to_generate -= 1
-      step = @unique_colors.size / num_to_generate
-      @indexed_colors = []
-      (0..num_to_generate).to_a.each do |num|
-        index = num * step
+      puts "Generating LAB versions of unique colors..."
+      @unique_colors = @unique_colors.keys.collect {|col| SortableColor.new(col) }
+      puts "Sorting unique colors based on DeltaE distance from black..."
+      @unique_colors.sort!
+      puts "Generating indexed color set..."
+      num_index_colors -= 1
+      index_step = @unique_colors.size / num_index_colors
+      (0..num_index_colors).to_a.each do |num|
+        index = num * index_step
         @indexed_colors << @unique_colors[index]
       end
-      puts "Generated index set, simplifying grid..."
-      grid_tmp = {}
-      @color_mappings = {}
-      grid_mod_count = 0
-      anticipated_grid_mods = @grid.keys.size
-      @grid.each do |grid_key, grid_value|
-        grid_mod_count += 1
-        @grid.delete(grid_key)
-        orig = SortableColor.new(grid_key[2])
-        closest = RAPTOR::GridHash.closest_color(orig, @indexed_colors)
-        @color_mappings[grid_key[2]] = closest.color_chunky
-        grid_key = [grid_key[0], grid_key[1], closest.color_chunky]
-        grid_tmp[grid_key] = [] if !grid_tmp.has_key?(grid_key)
-        grid_tmp[grid_key] += grid_value
-        puts "#{grid_mod_count} / #{anticipated_grid_mods} grid modifications" if grid_mod_count % 100 == 0
+      puts "Generating RGB to LAB color mappings..."
+      @unique_colors.select {|col| @color_mappings[col.color_chunky] = col.color_lab}
+      puts "Generating indexed color mappings..."
+      @index_mappings = {}
+      tst_bytes = ChunkyPNG::Color.to_truecolor_bytes(0)
+      tst_chunky_rgb = ChunkyPNG::RGB.new(0, 0, 0)
+      @color_mappings.each do |chunky_val, lab_val|
+        next if @index_mapping.has_key?(chunky_val)
+        best_deltaE = nil
+        best_match = nil
+        @indexed_colors.each do |index|
+          deltaE = tst_chunky_rgb.delta_e94(lab_val, index.color_lab)
+          if best_deltaE.nil? || deltaE < best_deltaE
+            best_deltaE = deltaE
+            best_match = index.color_chunky
+          end
+        end
+        @index_mappings[chunky_val] = best_match
       end
-      @grid = grid_tmp
-      puts "# of colors before indexing: #{@unique_colors.size}"
-      puts "# of colors after indexing: #{@indexed_colors.size}"
-      puts "done"
-      true
+      puts "Generating per-pixel pose information..."
+      i = 1
+      Dir.glob("#{dir}/**/*.png") do |file|
+        rot = File.basename(file, ".png").split("_").collect {|e| e.to_i}
+        rx = rot[0]
+        ry = rot[1]
+        rz = rot[2]
+        img = ChunkyPNG::Image.from_file file
+        width = img.dimension.width
+        height = img.dimension.height
+        width.times do |col|
+          height.times do |row|
+            color = img[col, row]
+            next if color == 0
+            indexed_color = @index_mappings[color]
+            register_activation(x: col, y: row, color: indexed_color, rx: rx, ry: ry, rz: rz)
+          end
+        end
+        puts "Processed up to #{file}\t(#{i})" if i % 1000 == 0
+        i += 1
+      end
     end
 
     class SortableColor
@@ -138,23 +160,23 @@ module RAPTOR
         @color_rgb = Color::RGB.new(bytes[0], bytes[1], bytes[2])
         @color_lab = @color_rgb.to_lab
       end
-      
+
       def get_deltaE_comparison(other)
         self_deltaE = @color_rgb.delta_e94(BASE, @color_lab)
         other_deltaE = @color_rgb.delta_e94(BASE, other.instance_variable_get(:@color_lab))
         [self_deltaE, other_deltaE]
       end
-      
+
       def >(other)
         deltaE = get_deltaE_comparison(other)
         deltaE[0] > deltaE[1]
       end
-      
+
       def <(other)
         deltaE = get_deltaE_comparison(other)
         deltaE[0] < deltaE[1]
       end
-      
+
       def ==(other)
         deltaE = get_deltaE_comparison(other)
         deltaE[0] == deltaE[1]
@@ -164,31 +186,45 @@ module RAPTOR
         deltaE = get_deltaE_comparison(other)
         deltaE[0] <=> deltaE[1]
       end
-      
+
       def get_deltaE(other)
         @color_rgb.delta_e94(@color_lab, other.color_lab)
       end
-      
+
       def color_chunky
         @color_chunky
       end
-      
+
       def color_rgb
         @color_rgb
       end
-      
+
       def color_lab
         @color_lab
       end
     end
 
-    def process_image(img_path)
+    def collect_image_color_data(img_path)
+      img = ChunkyPNG::Image.from_file img_path
+      width = img.dimension.width
+      height = img.dimension.height
+      width.times do |col|
+        height.times do |row|
+          color = img[col, row]
+          next if color == 0
+          @num_pixels += 1
+          @unique_colors[color] = true
+        end
+      end
+      true
+    end
+
+    def process_image2(img_path)
       rot = File.basename(img_path, ".png").split("_").collect {|e| e.to_i}
       rx = rot[0]
       ry = rot[1]
       rz = rot[2]
       img = ChunkyPNG::Image.from_file img_path
-      total = 0
       img.dimension.width.times do |col|
         img.dimension.height.times do |row|
           color = img[col, row]
