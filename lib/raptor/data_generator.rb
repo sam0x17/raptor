@@ -26,7 +26,7 @@ module RAPTOR
               "img_filename" => pose[:img_filename]},
               'blender -b -P render.py')
       img = ChunkyPNG::Image.from_file(pose[:img_filename])
-      img = RAPTOR.test_filter(img)
+      #img = RAPTOR.test_filter(img)
       img.save(pose[:img_filename])
     end
 
@@ -48,6 +48,7 @@ module RAPTOR
       rx_set.each do |rx|
         ry_set.each do |ry|
           rz_set.each do |rz|
+            next if rx == ry && ry == rz && rz == 180
             final_set << [rx, ry, rz]
           end
         end

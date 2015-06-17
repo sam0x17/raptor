@@ -2,6 +2,32 @@ require 'raptor/grid_hash'
 require 'raptor/data_generator'
 require 'oily_png'
 module RAPTOR
+  
+  def self.rotation_percent_error(expected, actual)
+    (expected[0].to_f - actual[0].to_f) / actual[0].to_f +
+    (expected[1].to_f - actual[1].to_f) / actual[1].to_f +
+    (expected[2].to_f - actual[2].to_f) / actual[2].to_f / 3.0
+  end
+  
+  def self.experiment(img_dir)
+    puts "Experiment started using #{img_dir}"
+    gh = RAPTOR::GridHash.new
+    gh.process_images(img_dir)
+    imgs = []
+    puts "Loading list of images..."
+    Dir.glob("#{img_dir}/**/*.png") do |file|
+      imgs << file
+    end
+    test_set = []
+    10.times do
+      test_set << imgs.sample
+    end
+    test_set.each do |img_path|
+      puts "Testing #{img_path}..."
+      counts = gh.identify_rotation(img_path)
+      
+    end
+  end
 
   def self.test_filter(img)
     img = ChunkyPNG::Image.from_file(img) if img.is_a? String

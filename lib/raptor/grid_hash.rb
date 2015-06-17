@@ -21,7 +21,6 @@ module RAPTOR
       x = params[:x]
       y = params[:y]
       color = params[:color]
-      @unique_colors[color] = true
       rx = params[:rx]
       ry = params[:ry]
       rz = params[:rz]
@@ -40,8 +39,10 @@ module RAPTOR
         counts[rot_id] = 1
       end
       total_rots = 0
-      img.dimension.width.times do |x|
-        img.dimension.height.times do |y|
+      width = img.dimension.width
+      height = img.dimension.height
+      width.times do |x|
+        height.times do |y|
           color = img[x, y]
           next if color == 0
           color = @color_mappings[color]
@@ -54,11 +55,11 @@ module RAPTOR
         end
       end
       counts = counts.sort_by(&:last)
-      @rots_inverted = @rotations.invert if @rots_inverted.nil?
-      counts.last(20).each do |rot_id, count|
-        puts "#{@rots_inverted[rot_id]} => #{count}"
-      end
-      true
+      #@rots_inverted = @rotations.invert if @rots_inverted.nil?
+      #counts.last(20).each do |rot_id, count|
+      #  puts "#{@rots_inverted[rot_id]} => #{count}"
+      #end
+      counts
     end
 
     def self.closest_color(color, set)
@@ -89,7 +90,7 @@ module RAPTOR
       i = 1
       puts "Collecting color information..."
       Dir.glob("#{dir}/**/*.png") do |file|
-        puts "Processed up to #{file}\t(#{i})" if i % 1000 == 0
+        puts "Current PNG: #{file} (#{@unique_colors.size} unique colors; img: #{i})" if i % 1000 == 0
         collect_image_color_data(file)
         i += 1
       end
@@ -113,14 +114,13 @@ module RAPTOR
       @unique_colors.select {|col| @color_mappings[col.color_chunky] = col.color_lab}
       puts "Generating indexed color mappings..."
       @index_mappings = {}
-      tst_bytes = ChunkyPNG::Color.to_truecolor_bytes(0)
-      tst_chunky_rgb = ChunkyPNG::RGB.new(0, 0, 0)
+      tmp_rgb = Color::RGB.new(0, 0, 0)
       @color_mappings.each do |chunky_val, lab_val|
-        next if @index_mapping.has_key?(chunky_val)
+        next if @index_mappings.has_key?(chunky_val)
         best_deltaE = nil
         best_match = nil
         @indexed_colors.each do |index|
-          deltaE = tst_chunky_rgb.delta_e94(lab_val, index.color_lab)
+          deltaE = tmp_rgb.delta_e94(lab_val, index.color_lab)
           if best_deltaE.nil? || deltaE < best_deltaE
             best_deltaE = deltaE
             best_match = index.color_chunky
@@ -128,6 +128,8 @@ module RAPTOR
         end
         @index_mappings[chunky_val] = best_match
       end
+      @unique_colors = nil # save memory
+      @indexed_colors = nil
       puts "Generating per-pixel pose information..."
       i = 1
       Dir.glob("#{dir}/**/*.png") do |file|
@@ -146,9 +148,12 @@ module RAPTOR
             register_activation(x: col, y: row, color: indexed_color, rx: rx, ry: ry, rz: rz)
           end
         end
-        puts "Processed up to #{file}\t(#{i})" if i % 1000 == 0
+        puts "Current PNG: #{file} (#{i}/#{num_images})" if i % 1000 == 0
         i += 1
       end
+      @color_mappings = nil
+      @index_mappings = nil
+      puts "Done"
     end
 
     class SortableColor
