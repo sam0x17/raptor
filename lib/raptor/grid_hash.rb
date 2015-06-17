@@ -2,6 +2,8 @@ require 'color'
 module RAPTOR
   class GridHash
 
+    CLEAR_LINE = "                                                                                \r"
+
     def initialize(options={})
       @unique_colors = {}
       @grid = {}
@@ -36,7 +38,7 @@ module RAPTOR
       img = ChunkyPNG::Image.from_file(img) if img.is_a? String
       counts = {}
       @rotations.each do |rot, rot_id|
-        counts[rot_id] = 1
+        counts[rot_id] = 0
       end
       total_rots = 0
       width = img.dimension.width
@@ -45,39 +47,22 @@ module RAPTOR
         height.times do |y|
           color = img[x, y]
           next if color == 0
-          color = @color_mappings[color]
+          color = @index_mappings[color]
           key = [x, y, color]
           rots = @grid[key]
           rots.each do |rot_id|
             counts[rot_id] += 1
-            total_rots += 1
           end
         end
       end
       counts = counts.sort_by(&:last)
-      #@rots_inverted = @rotations.invert if @rots_inverted.nil?
-      #counts.last(20).each do |rot_id, count|
-      #  puts "#{@rots_inverted[rot_id]} => #{count}"
-      #end
-      counts
-    end
-
-    def self.closest_color(color, set)
-      best_deltaE = nil
-      best_match = nil
-      set.each do |col|
-        deltaE = color.get_deltaE(col)
-        if best_match.nil?
-          best_match = col
-          best_deltaE = deltaE
-          next
-        end
-        if deltaE < best_deltaE
-          best_match = col
-          best_deltaE = deltaE
-        end
+      @rots_inverted = @rotations.invert if @rots_inverted.nil?
+      ret = {}
+      counts.each do |rot_id, count|
+        rot = @rots_inverted[rot_id]
+        ret[rot] = count
       end
-      best_match
+      ret
     end
 
     def process_images(dir, num_index_colors=50)
@@ -87,14 +72,18 @@ module RAPTOR
       @num_pixels = 0
       @color_mappings = {}
       @indexed_colors = []
+      @rots_inverted = nil
       i = 1
       puts "Collecting color information..."
       Dir.glob("#{dir}/**/*.png") do |file|
-        puts "Current PNG: #{file} (#{@unique_colors.size} unique colors; img: #{i})" if i % 1000 == 0
+        print CLEAR_LINE
+        print "Reading pixels from image #{i} (#{file})\r"
+        $stdout.flush
         collect_image_color_data(file)
         i += 1
       end
       num_images = i
+      puts ""
       puts "Completed initial pass"
       puts "Total images: #{num_images}"
       puts "Total pixels processed: #{@num_pixels}"
@@ -133,6 +122,9 @@ module RAPTOR
       puts "Generating per-pixel pose information..."
       i = 1
       Dir.glob("#{dir}/**/*.png") do |file|
+        print CLEAR_LINE
+        print "Reading pixels from image #{i}/#{num_images} (#{file})\r"
+        $stdout.flush
         rot = File.basename(file, ".png").split("_").collect {|e| e.to_i}
         rx = rot[0]
         ry = rot[1]
@@ -148,11 +140,9 @@ module RAPTOR
             register_activation(x: col, y: row, color: indexed_color, rx: rx, ry: ry, rz: rz)
           end
         end
-        puts "Current PNG: #{file} (#{i}/#{num_images})" if i % 1000 == 0
         i += 1
       end
-      @color_mappings = nil
-      @index_mappings = nil
+      puts ""
       puts "Done"
     end
 
@@ -222,22 +212,6 @@ module RAPTOR
         end
       end
       true
-    end
-
-    def process_image2(img_path)
-      rot = File.basename(img_path, ".png").split("_").collect {|e| e.to_i}
-      rx = rot[0]
-      ry = rot[1]
-      rz = rot[2]
-      img = ChunkyPNG::Image.from_file img_path
-      img.dimension.width.times do |col|
-        img.dimension.height.times do |row|
-          color = img[col, row]
-          next if color == 0
-          @num_pixels += 1
-          register_activation(x: col, y: row, color: img[col, row], rx: rx, ry: ry, rz: rz)
-        end
-      end
     end
 
   end

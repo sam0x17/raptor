@@ -1,18 +1,19 @@
 require 'raptor/grid_hash'
 require 'raptor/data_generator'
 require 'oily_png'
+require 'fileutils'
 module RAPTOR
 
   def self.rotation_percent_error(expected, actual)
-    (expected[0].to_f - actual[0].to_f) / actual[0].to_f +
-    (expected[1].to_f - actual[1].to_f) / actual[1].to_f +
-    (expected[2].to_f - actual[2].to_f) / actual[2].to_f / 3.0
+    (((expected[0].to_f - actual[0].to_f) / 360.0).abs +
+    ((expected[1].to_f - actual[1].to_f) / 360.0).abs +
+    ((expected[2].to_f - actual[2].to_f) / 360.0).abs) / 3.0
   end
 
   def self.experiment(img_dir)
     puts "Experiment started using #{img_dir}"
-    gh = RAPTOR::GridHash.new
-    gh.process_images(img_dir)
+    $gh = RAPTOR::GridHash.new
+    $gh.process_images(img_dir)
     imgs = []
     puts "Loading list of images..."
     Dir.glob("#{img_dir}/**/*.png") do |file|
@@ -24,9 +25,24 @@ module RAPTOR
     end
     test_set.each do |img_path|
       puts "Testing #{img_path}..."
-      counts = gh.identify_rotation(img_path)
+      counts = $gh.identify_rotation(img_path).to_a.last(10)
+      expected = counts.last[0]
+      expected_str = expected.join('_')
+      test_dir = "experiment_output/#{expected_str}"
+      Dir.mkdir(test_dir)
+      i = counts.size - 1
+      counts.each do |arr|
+        rot = arr[0]
+        count = arr[1]
+        item_str = rot.join('_')
+        #error = RAPTOR.rotation_percent_error(expected, rot)
+        FileUtils.cp("#{img_dir}/#{item_str}.png", "#{test_dir}/#{i}.png")
+        puts "#{arr[0]}\t=>\t#{arr[1]}"
+        i -= 1
+      end
 
     end
+    true
   end
 
   def self.test_filter(img)
