@@ -25,9 +25,10 @@ module RAPTOR
               "width" => pose[:width].to_s, "height" => pose[:height].to_s,
               "img_filename" => pose[:img_filename]},
               'blender -b -P render.py')
-      img = ChunkyPNG::Image.from_file(pose[:img_filename])
+      #img = ChunkyPNG::Image.from_file(pose[:img_filename])
       #img = RAPTOR.test_filter(img)
-      img.save(pose[:img_filename])
+      #img.save(pose[:img_filename])
+      true
     end
 
     def self.render_random_pose(options={})
