@@ -10,7 +10,9 @@ tmp
 /vendor/.bundle
 /lib/bundle/man
 *.project
-.project
+/.project
 output.png
 /output/*.png
+/experiment_output/*.png
+/experiment_output/*.txt
 /config/database.yml
