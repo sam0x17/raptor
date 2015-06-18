@@ -13,6 +13,6 @@ tmp
 /.project
 output.png
 /output/*.png
-/experiment_output/*.png
-/experiment_output/*.txt
+!/experiment_output/.keep
+/experiment_output/**/*
 /config/database.yml
