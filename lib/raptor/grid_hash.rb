@@ -11,6 +11,7 @@ module RAPTOR
       @color_mappings = {}
       @num_pixels = 0
       @rots_inverted = nil
+      @rotation_indexes = {}
     end
 
     def [](x, y, c)
@@ -65,6 +66,19 @@ module RAPTOR
       ret
     end
 
+    def get_file_index_by_rotation(rot)
+      ret = @rotation_indexes[rot]
+      if ret.nil?
+        puts "Rotation not found! #{rot}"
+        @rotation_indexes.each do |k, v|
+          puts "#{k}"
+        end
+        puts "query #{rot}"
+        puts "size #{@rotation_indexes.size}"
+      end
+      return ret
+    end
+
     def process_images(dir, num_index_colors=50)
       @unique_colors = {}
       @grid = {}
@@ -73,6 +87,7 @@ module RAPTOR
       @color_mappings = {}
       @indexed_colors = []
       @rots_inverted = nil
+      @rotation_indexes = {}
       i = 1
       puts "Collecting color information..."
       Dir.glob("#{dir}/**/*.png") do |file|
@@ -124,12 +139,16 @@ module RAPTOR
       Dir.glob("#{dir}/**/*.png") do |file|
         print CLEAR_LINE
         print "Reading pixels from image #{i}/#{num_images} (#{file})\r"
-        $stdout.flush
-        rot = File.basename(file, ".png").split("_").collect {|e| e.to_i}
-        rx = rot[0]
-        ry = rot[1]
-        rz = rot[2]
         img = ChunkyPNG::Image.from_file file
+        $stdout.flush
+        #rot = File.basename(file, ".png").split("_").collect {|e| e.to_i}
+        #rx = rot[0]
+        #ry = rot[1]
+        #rz = rot[2]
+        rx = img.metadata['rx'].to_f
+        ry = img.metadata['ry'].to_f
+        rz = img.metadata['rz'].to_f
+        @rotation_indexes[[rx, ry, rz]] = File.basename(file, ".png").to_i
         width = img.dimension.width
         height = img.dimension.height
         width.times do |col|

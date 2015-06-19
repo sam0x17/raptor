@@ -8,6 +8,7 @@ import subprocess
 import mathutils
 from mathutils import Vector
 from mathutils import Matrix
+from mathutils import Quaternion
 
 pi = 3.14159265
 deg_to_rad = 0.0174532925
@@ -110,7 +111,6 @@ render = scene.render
 # select all meshes
 bpy.ops.object.select_by_type(type='MESH')
 
-
 # average world location of component objects
 avg_loc = ((0.0, 0.0, 0.0)) 
 
@@ -168,7 +168,6 @@ def compute_bb():
 	true_bb = ((mb_x, mb_y, mb_z))
 	max_dim = max(mb_x, mb_y, mb_z)
 	
-
 # get v3d
 def areas_tuple():
     res = {}                                                               
@@ -192,7 +191,8 @@ compute_bb()
 
 # rotate model
 for obj in bpy.context.selected_objects:
-	obj.rotation_euler = normrot(v3d_add_v3d(rot, obj.rotation_euler))
+  obj.rotation_mode = 'QUATERNION'
+  obj.rotation_quaternion = Quaternion((1.0, raptor_rx, raptor_ry, raptor_rz))
 bpy.ops.object.transform_apply(rotation=True)
 first_run = False
 

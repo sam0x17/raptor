@@ -20,7 +20,7 @@ module RAPTOR
       imgs << file
     end
     test_set = {}
-    100.times do
+    50.times do
       while true do
         tst = imgs.sample
         if !test_set.has_key?(tst)
@@ -34,16 +34,18 @@ module RAPTOR
       puts "Testing #{img_path}..."
       counts = $gh.identify_rotation(img_path).to_a.last(20)
       expected = counts.last[0]
-      expected_str = expected.join('_')
+      puts "expected: |#{expected}|"
+      expected_str = $gh.get_file_index_by_rotation(expected)
       test_dir = "experiment_output/#{expected_str}"
+      puts "attempting to make directory #{test_dir}"
       Dir.mkdir(test_dir)
       i = counts.size - 1
       counts.each do |arr|
         rot = arr[0]
         count = arr[1]
-        item_str = rot.join('_')
+        item_str = $gh.get_file_index_by_rotation(rot).to_s.rjust(7, "0")
         #error = RAPTOR.rotation_percent_error(expected, rot)
-        FileUtils.cp("#{img_dir}/#{item_str}.png", "#{test_dir}/#{i}.png")
+        FileUtils.cp("#{img_dir}/#{item_str}.png", "#{test_dir}/#{item_str}.png")
         puts "#{arr[0]}\t=>\t#{arr[1]}"
         i -= 1
       end
