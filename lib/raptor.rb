@@ -19,13 +19,20 @@ module RAPTOR
     Dir.glob("#{img_dir}/**/*.png") do |file|
       imgs << file
     end
-    test_set = []
-    10.times do
-      test_set << imgs.sample
+    test_set = {}
+    100.times do
+      while true do
+        tst = imgs.sample
+        if !test_set.has_key?(tst)
+          test_set[tst] = true
+          break
+        end
+      end
     end
+    test_set = test_set.keys
     test_set.each do |img_path|
       puts "Testing #{img_path}..."
-      counts = $gh.identify_rotation(img_path).to_a.last(10)
+      counts = $gh.identify_rotation(img_path).to_a.last(20)
       expected = counts.last[0]
       expected_str = expected.join('_')
       test_dir = "experiment_output/#{expected_str}"
