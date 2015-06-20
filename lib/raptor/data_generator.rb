@@ -39,7 +39,7 @@ module RAPTOR
       RAPTOR::DataGenerator.render_pose(pose)
     end
 
-    def self.render_partitions(points_per_dimension=16, options={})
+    def self.render_partitions(points_per_dimension=16, start_index=1, end_index=(points_per_dimension**3 - 1), options={})
       data_directory = 'output'
       points_per_dimension -= 1
       step = 1.0 / points_per_dimension
@@ -47,7 +47,8 @@ module RAPTOR
       rx_set = (0..points_per_dimension).to_a.collect { |n| n * step }
       ry_set = rx_set.clone
       rz_set = rx_set.clone
-      puts "Will render #{rx_set.size * ry_set.size * rz_set.size} samples"
+      puts "Total series size: #{rx_set.size * ry_set.size * rz_set.size}"
+      puts "Attempting to render this run: #{end_index - start_index}"
       final_set = []
       rx_set.each do |rx|
         ry_set.each do |ry|
@@ -57,6 +58,11 @@ module RAPTOR
           end
         end
       end
+      tmp = []
+      (start_index..(end_index)).to_a.each do |i|
+        tmp << final_set[i]
+      end
+      final_set = tmp
       num_cores = Facter.value('processors')['count']
       last_core = 0
       core_sets = {}
@@ -69,12 +75,11 @@ module RAPTOR
         last_core = 0 if last_core >= num_cores
       end
       threads = []
-      img_num = 0
+      img_num = start_index
       core_sets.values.each do |core_set|
         cset = core_set.clone
         threads << Thread.new do
           cset.each do |rot|
-            img_num += 1
             rx = rot[0]
             ry = rot[1]
             rz = rot[2]
@@ -94,6 +99,7 @@ module RAPTOR
             pose[:model] = options[:model] if options[:model]
             generated_pose = RAPTOR::DataGenerator.generate_pose(pose)
             RAPTOR::DataGenerator.render_pose(generated_pose)
+            img_num += 1
           end
           Thread.exit
         end
