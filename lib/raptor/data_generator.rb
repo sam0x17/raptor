@@ -39,28 +39,27 @@ module RAPTOR
       RAPTOR::DataGenerator.render_pose(pose)
     end
 
-    def self.render_partitions(points_per_dimension=16, start_index=1, end_index=(points_per_dimension**3 - 1), options={})
+    def self.render_partitions(points_per_dimension=16, start_index=1, end_index=nil, options={})
       data_directory = 'output'
-      points_per_dimension -= 1
       step = 1.0 / points_per_dimension
       points_per_dimension -= 1
       rx_set = (0..points_per_dimension).to_a.collect { |n| n * step }
       ry_set = rx_set.clone
       rz_set = rx_set.clone
-      puts "Total series size: #{rx_set.size * ry_set.size * rz_set.size}"
+      end_index = rx_set.size * ry_set.size * rz_set.size if end_index.nil?
+      puts "Total series size: #{end_index}"
       puts "Attempting to render this run: #{end_index - start_index}"
       final_set = []
       rx_set.each do |rx|
         ry_set.each do |ry|
           rz_set.each do |rz|
-            next if rx == ry && ry == rz && rz == 180
             final_set << [rx, ry, rz]
           end
         end
       end
       tmp = []
-      (start_index..(end_index)).to_a.each do |i|
-        tmp << final_set[i]
+      (start_index..end_index).to_a.each do |i|
+        tmp << final_set[i] if final_set[i]
       end
       final_set = tmp
       num_cores = Facter.value('processors')['count']
@@ -77,29 +76,35 @@ module RAPTOR
       threads = []
       img_num = start_index
       core_sets.values.each do |core_set|
-        cset = core_set.clone
         threads << Thread.new do
-          cset.each do |rot|
-            rx = rot[0]
-            ry = rot[1]
-            rz = rot[2]
-            pose = {}
-            pose[:img_filename] = "#{data_directory}/#{img_num.to_s.rjust(7, '0')}.png"
-            if File.exist?(pose[:img_filename])
-              puts "Skipping pose that already exists: #{[rx, ry, rz]} : #{pose[:img_filename]}"
-              next
+          begin
+            core_set.clone.each do |rot|
+              rx = rot[0]
+              ry = rot[1]
+              rz = rot[2]
+              pose = {}
+              pose[:img_filename] = "#{data_directory}/#{img_num.to_s.rjust(7, '0')}.png"
+              if File.exist?(pose[:img_filename])
+                img_num += 1
+                puts "Skipping pose that already exists: #{[rx, ry, rz]} : #{pose[:img_filename]}"
+                next
+              end
+              puts "Rotation: #{[rx, ry, rz]}"
+              puts "Rendering #{options[:img_filename]}"
+              pose[:width] = options[:width] if options[:width]
+              pose[:height] = options[:height] if options[:height]
+              pose[:rx] = rx.to_s.to_f.to_s
+              pose[:ry] = ry.to_s.to_f.to_s
+              pose[:rz] = rz.to_s.to_f.to_s
+              pose[:model] = options[:model] if options[:model]
+              generated_pose = RAPTOR::DataGenerator.generate_pose(pose)
+              RAPTOR::DataGenerator.render_pose(generated_pose)
+              img_num += 1
             end
-            puts "Rotation: #{[rx, ry, rz]}"
-            puts "Rendering #{options[:img_filename]}"
-            pose[:width] = options[:width] if options[:width]
-            pose[:height] = options[:height] if options[:height]
-            pose[:rx] = rx.to_s.to_f.to_s
-            pose[:ry] = ry.to_s.to_f.to_s
-            pose[:rz] = rz.to_s.to_f.to_s
-            pose[:model] = options[:model] if options[:model]
-            generated_pose = RAPTOR::DataGenerator.generate_pose(pose)
-            RAPTOR::DataGenerator.render_pose(generated_pose)
-            img_num += 1
+          rescue => err
+            puts "An error occured while generating image ##{img_num}"
+            Thread.exit
+            raise err
           end
           Thread.exit
         end
