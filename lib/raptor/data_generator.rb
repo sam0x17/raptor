@@ -24,7 +24,16 @@ module RAPTOR
               "rx" => pose[:rx].to_s, "ry" => pose[:ry].to_s, "rz" => pose[:rz].to_s,
               "width" => pose[:width].to_s, "height" => pose[:height].to_s,
               "img_filename" => pose[:img_filename]},
-              'blender -b -P render.py')
+              'blender -b -P render.py > /dev/null')
+      if $? == 1
+        puts "A rendering error occured -- retrying in verbose mode"
+        system({"model" => pose[:model],
+                "rx" => pose[:rx].to_s, "ry" => pose[:ry].to_s, "rz" => pose[:rz].to_s,
+                "width" => pose[:width].to_s, "height" => pose[:height].to_s,
+                "img_filename" => pose[:img_filename]},
+                'blender -b -P render.py')
+        raise RenderError
+      end
       img = ChunkyPNG::Image.from_file(pose[:img_filename])
       img.metadata['rx'] = pose[:rx].to_s
       img.metadata['ry'] = pose[:ry].to_s
@@ -47,7 +56,7 @@ module RAPTOR
       ry_set = rx_set.clone
       rz_set = rx_set.clone
       end_index = rx_set.size * ry_set.size * rz_set.size if end_index.nil?
-      puts "Total series size: #{end_index}"
+      puts "Total series size: #{rx_set.size * ry_set.size * rz_set.size - 1}"
       puts "Attempting to render this run: #{end_index - start_index}"
       final_set = []
       rx_set.each do |rx|
@@ -75,8 +84,12 @@ module RAPTOR
       end
       threads = []
       img_num = start_index
+      core_count = 0
+      max_width = 80
       core_sets.values.each do |core_set|
         threads << Thread.new do
+          core_count += 1
+          core_num = core_count
           begin
             core_set.clone.each do |rot|
               rx = rot[0]
@@ -87,13 +100,20 @@ module RAPTOR
               if File.exist?(pose[:img_filename])
                 img_num += 1
                 puts "Skipping pose that already exists: #{[rx, ry, rz]} : #{pose[:img_filename]}"
+                $stdout.flush
                 next
               end
-              puts "Rotation: #{[rx, ry, rz]}"
-              puts "Rendering #{options[:img_filename]}"
+              $stdout.flush
+              st = " " * max_width
+              st += "\r"
+              print st
+              st = "Core #{core_num}: pose ##{img_num}/#{final_set.size} #{[rx, ry, rz]}...\r"
+              max_width = st.size if st.size > max_width
+              print st
+              $stdout.flush
               pose[:width] = options[:width] if options[:width]
               pose[:height] = options[:height] if options[:height]
-              pose[:rx] = rx.to_s.to_f.to_s
+              pose[:rx] = rx.to_s.to_f.to_s # ensure uniqueness despite floating point imprecision
               pose[:ry] = ry.to_s.to_f.to_s
               pose[:rz] = rz.to_s.to_f.to_s
               pose[:model] = options[:model] if options[:model]
@@ -110,6 +130,9 @@ module RAPTOR
         end
       end
       threads.each {|t| t.join}
+      sleep(0.1)
+      $stdout.flush
+      puts ""
       puts "Successfully rendered #{final_set.size} samples!"
       true
     end
@@ -118,6 +141,9 @@ module RAPTOR
     end
 
     class MissingRequiredParamError < StandardError
+    end
+
+    class RenderError < StandardError
     end
 
   end

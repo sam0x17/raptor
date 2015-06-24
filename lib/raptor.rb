@@ -10,6 +10,13 @@ module RAPTOR
     ((expected[2].to_f - actual[2].to_f) / 1.0).abs) / 3.0
   end
 
+  def self.euclidean_distance(p, q)
+    a = q[0] - p[0]
+    b = q[1] - p[1]
+    c = q[2] - p[2]
+    Math.sqrt(a*a + b*b + c*c)
+  end
+
   def self.experiment(img_dir)
     puts "Experiment started using #{img_dir}"
     $gh = RAPTOR::GridHash.new
@@ -23,16 +30,6 @@ module RAPTOR
     imgs.uniq!
     puts "Randomly shuffling image set..."
     imgs.shuffle!
-    #test_set = {}
-    #1000.times do
-    #  while true do
-    #    tst = imgs.sample
-    #    if !test_set.has_key?(tst)
-    #      test_set[tst] = true
-    #      break
-    #    end
-    #  end
-    #end
     puts "Performing tests..."
     test_set = imgs.first(1000)
     avg_err = 0.0
