@@ -17,7 +17,14 @@ module RAPTOR
     Math.sqrt(a*a + b*b + c*c)
   end
 
-  def self.experiment(img_dir)
+  def self.interpolate(r1, r2, w1, w2)
+    v = [r2[0] - r1[0], r2[1] - r1[1], r2[2] - r1[2]]
+    total_dist = RAPTOR.euclidean_distance(r1, r2)
+    f = w1.to_f / (w1 + w2)
+    [r1[0] + f*v[0], r1[1] + f*v[1], r1[2] + f*v[2]]
+  end
+
+  def self.experiment(img_dir, interpolate=false)
     puts "Experiment started using #{img_dir}"
     $gh = RAPTOR::GridHash.new
     $gh.process_images(img_dir)
@@ -41,21 +48,26 @@ module RAPTOR
       expected_str = $gh.get_file_index_by_rotation(expected)
       test_dir = "experiment_output/#{expected_str}"
       puts "attempting to make directory #{test_dir}"
-      begin
-        Dir.mkdir(test_dir)
-        i = counts.size - 1
-        counts.each do |arr|
-          rot = arr[0]
-          count = arr[1]
-          item_str = $gh.get_file_index_by_rotation(rot).to_s.rjust(7, "0")
-          error = RAPTOR.rotation_percent_error(expected, rot)
-          FileUtils.cp("#{img_dir}/#{item_str}.png", "#{test_dir}/#{item_str}.png")
-          puts "#{arr[0]}\t=>\t#{arr[1]}\t#{error}"
-          avg_err += error if i == 1
-          i -= 1
-        end
-      rescue
-        puts "failed -- skipping"
+      Dir.mkdir(test_dir)
+      i = counts.size - 1
+      counts.each do |arr|
+        rot = arr[0]
+        count = arr[1]
+        item_str = $gh.get_file_index_by_rotation(rot).to_s.rjust(7, "0")
+        error = RAPTOR.rotation_percent_error(expected, rot)
+        FileUtils.cp("#{img_dir}/#{item_str}.png", "#{test_dir}/#{i}.png")
+        puts "#{arr[0]}\t=>\t#{arr[1]}\t#{error}" if !interpolate
+        avg_err += error if i == 1 && !interpolate
+        i -= 1
+      end
+      if interpolate
+        actual = counts[counts.size - 1]
+        guess1 = counts[counts.size - 2]
+        guess2 = counts[counts.size - 3]
+        interp = RAPTOR.interpolate(guess1[0], guess2[0], guess1[1], guess2[1])
+        error = RAPTOR.rotation_percent_error(actual[0], interp)
+        puts "#{error}\t#{actual} => #{interp} (#{guess1[0]}:#{guess1[1]} to #{guess2[0]}:#{guess2[1]})"
+        avg_err += error
       end
     end
     puts "# tests: #{test_set.size}"
