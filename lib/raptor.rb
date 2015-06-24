@@ -5,9 +5,9 @@ require 'fileutils'
 module RAPTOR
 
   def self.rotation_percent_error(expected, actual)
-    (((expected[0].to_f - actual[0].to_f) / 360.0).abs +
-    ((expected[1].to_f - actual[1].to_f) / 360.0).abs +
-    ((expected[2].to_f - actual[2].to_f) / 360.0).abs) / 3.0
+    (((expected[0].to_f - actual[0].to_f) / 1.0).abs +
+    ((expected[1].to_f - actual[1].to_f) / 1.0).abs +
+    ((expected[2].to_f - actual[2].to_f) / 1.0).abs) / 3.0
   end
 
   def self.experiment(img_dir)
@@ -19,42 +19,56 @@ module RAPTOR
     Dir.glob("#{img_dir}/**/*.png") do |file|
       imgs << file
     end
-    test_set = {}
-    50.times do
-      while true do
-        tst = imgs.sample
-        if !test_set.has_key?(tst)
-          test_set[tst] = true
-          break
-        end
-      end
-    end
-    test_set = test_set.keys
+    puts "Ensuring that image set is unique..."
+    imgs.uniq!
+    puts "Randomly shuffling image set..."
+    imgs.shuffle!
+    #test_set = {}
+    #1000.times do
+    #  while true do
+    #    tst = imgs.sample
+    #    if !test_set.has_key?(tst)
+    #      test_set[tst] = true
+    #      break
+    #    end
+    #  end
+    #end
+    puts "Performing tests..."
+    test_set = imgs.first(1000)
+    avg_err = 0.0
     test_set.each do |img_path|
       puts "Testing #{img_path}..."
-      counts = $gh.identify_rotation(img_path).to_a.last(20)
+      counts = $gh.identify_rotation(img_path).to_a.last(8)
       expected = counts.last[0]
       puts "expected: |#{expected}|"
       expected_str = $gh.get_file_index_by_rotation(expected)
       test_dir = "experiment_output/#{expected_str}"
       puts "attempting to make directory #{test_dir}"
-      Dir.mkdir(test_dir)
-      i = counts.size - 1
-      counts.each do |arr|
-        rot = arr[0]
-        count = arr[1]
-        item_str = $gh.get_file_index_by_rotation(rot).to_s.rjust(7, "0")
-        #error = RAPTOR.rotation_percent_error(expected, rot)
-        FileUtils.cp("#{img_dir}/#{item_str}.png", "#{test_dir}/#{item_str}.png")
-        puts "#{arr[0]}\t=>\t#{arr[1]}"
-        i -= 1
+      begin
+        Dir.mkdir(test_dir)
+        i = counts.size - 1
+        counts.each do |arr|
+          rot = arr[0]
+          count = arr[1]
+          item_str = $gh.get_file_index_by_rotation(rot).to_s.rjust(7, "0")
+          error = RAPTOR.rotation_percent_error(expected, rot)
+          FileUtils.cp("#{img_dir}/#{item_str}.png", "#{test_dir}/#{item_str}.png")
+          puts "#{arr[0]}\t=>\t#{arr[1]}\t#{error}"
+          avg_err += error if i == 1
+          i -= 1
+        end
+      rescue
+        puts "failed -- skipping"
       end
-
     end
+    puts "# tests: #{test_set.size}"
+    puts "RAPTOR memory usage: #{$gh.memory_size} bytes"
+    avg_err = avg_err / test_set.size.to_f
+    puts "Average % error: #{avg_err}"
     true
   end
 
-  def self.test_filter(img)
+  def self.image_gradient(img)
     img = ChunkyPNG::Image.from_file(img) if img.is_a? String
     width = img.dimension.width
     height = img.dimension.height

@@ -1,4 +1,5 @@
 require 'color'
+require 'objspace'
 module RAPTOR
   class GridHash
 
@@ -14,10 +15,24 @@ module RAPTOR
       @rotation_indexes = {}
     end
 
+    def memory_size
+      ObjectSpace.memsize_of(@grid) +
+      ObjectSpace.memsize_of(@rotations) +
+      ObjectSpace.memsize_of(@rots_inverted) +
+      ObjectSpace.memsize_of(@rotation_indexes) +
+      ObjectSpace.memsize_of(@color_mappings) +
+      ObjectSpace.memsize_of(@unique_colors)
+    end
+
     def [](x, y, c)
       x = x.to_i
       y = y.to_i
       c = c.to_i
+    end
+
+    def self.filter_color(color)
+      bytes = ChunkyPNG::Color.to_truecolor_bytes(color)
+      ChunkyPNG::Color.rgb(bytes[0], bytes[1], bytes[2])
     end
 
     def register_activation(params={})
@@ -48,6 +63,7 @@ module RAPTOR
         height.times do |y|
           color = img[x, y]
           next if color == 0
+          color = GridHash.filter_color(color)
           color = @index_mappings[color]
           key = [x, y, color]
           rots = @grid[key]
@@ -134,7 +150,7 @@ module RAPTOR
       end
       @unique_colors = nil # save memory
       @indexed_colors = nil
-      puts "Generating per-pixel pose information..."
+      puts "Collecting per-pixel pose information..."
       i = 1
       Dir.glob("#{dir}/**/*.png") do |file|
         print CLEAR_LINE
@@ -155,6 +171,8 @@ module RAPTOR
           height.times do |row|
             color = img[col, row]
             next if color == 0
+            color = img[col, row]
+            color = GridHash.filter_color(color)
             indexed_color = @index_mappings[color]
             register_activation(x: col, y: row, color: indexed_color, rx: rx, ry: ry, rz: rz)
           end
@@ -169,8 +187,8 @@ module RAPTOR
       BASE = Color::RGB.new(255, 255, 255).to_lab
 
       def initialize(color)
-        @color_chunky = color
         bytes = ChunkyPNG::Color.to_truecolor_bytes(color)
+        @color_chunky = ChunkyPNG::Color.rgb(bytes[0], bytes[1], bytes[2])
         @color_rgb = Color::RGB.new(bytes[0], bytes[1], bytes[2])
         @color_lab = @color_rgb.to_lab
       end
@@ -226,6 +244,7 @@ module RAPTOR
         height.times do |row|
           color = img[col, row]
           next if color == 0
+          color = GridHash.filter_color(color)
           @num_pixels += 1
           @unique_colors[color] = true
         end
