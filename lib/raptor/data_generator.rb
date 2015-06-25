@@ -75,23 +75,25 @@ module RAPTOR
       last_core = 0
       core_sets = {}
       num_cores.times do |core_num|
-        core_sets[core_num] = []
+        core_sets[core_num] = {}
       end
+      i = 1
       final_set.each do |val|
-        core_sets[last_core] << val
+        next if i < start_index || i > end_index
+        core_sets[last_core][i] = val
         last_core += 1
         last_core = 0 if last_core >= num_cores
+        i += 1
       end
       threads = []
-      img_num = start_index
       core_count = 0
       max_width = 80
       core_sets.values.each do |core_set|
         threads << Thread.new do
           core_count += 1
           core_num = core_count
-          begin
-            core_set.clone.each do |rot|
+          core_set.clone.each do |img_num, rot|
+            begin
               rx = rot[0]
               ry = rot[1]
               rz = rot[2]
@@ -99,7 +101,12 @@ module RAPTOR
               pose[:img_filename] = "#{data_directory}/#{img_num.to_s.rjust(7, '0')}.png"
               if File.exist?(pose[:img_filename])
                 img_num += 1
-                puts "Skipping pose that already exists: #{[rx, ry, rz]} : #{pose[:img_filename]}"
+                $stdout.flush
+                st = " " * max_width
+                st += "\r"
+                st = "Skipping pose that already exists: #{[rx, ry, rz]} : #{pose[:img_filename]}\r"
+                max_width = st.size if st.size > max_width
+                print st
                 $stdout.flush
                 next
               end
@@ -120,11 +127,11 @@ module RAPTOR
               generated_pose = RAPTOR::DataGenerator.generate_pose(pose)
               RAPTOR::DataGenerator.render_pose(generated_pose)
               img_num += 1
+            rescue => err
+              puts ""
+              puts "An error occured while generating image ##{img_num}"
+              puts "#{err}"
             end
-          rescue => err
-            puts "An error occured while generating image ##{img_num}"
-            Thread.exit
-            raise err
           end
           Thread.exit
         end
