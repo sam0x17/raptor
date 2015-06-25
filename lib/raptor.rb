@@ -10,6 +10,10 @@ module RAPTOR
     ((expected[2].to_f - actual[2].to_f) / 1.0).abs) / 3.0
   end
 
+  def self.rotation_euclidean_error(expected, actual)
+    RAPTOR.euclidean_distance(expected, actual)
+  end
+
   def self.euclidean_distance(p, q)
     a = q[0] - p[0]
     b = q[1] - p[1]
@@ -24,7 +28,7 @@ module RAPTOR
     [r1[0] + f*v[0], r1[1] + f*v[1], r1[2] + f*v[2]]
   end
 
-  def self.experiment(img_dir, interpolate=false)
+  def self.experiment(img_dir, interpolate=false, euclidean_error=false)
     puts "Experiment started using #{img_dir}"
     $gh = RAPTOR::GridHash.new
     $gh.process_images(img_dir)
@@ -54,19 +58,21 @@ module RAPTOR
         rot = arr[0]
         count = arr[1]
         item_str = $gh.get_file_index_by_rotation(rot).to_s.rjust(7, "0")
-        error = RAPTOR.rotation_percent_error(expected, rot)
+        error = RAPTOR.rotation_percent_error(expected, rot) if !euclidean_error
+        error = RAPTOR.rotation_euclidean_error(expected, rot) if euclidean_error
         FileUtils.cp("#{img_dir}/#{item_str}.png", "#{test_dir}/#{i}.png")
-        puts "#{arr[0]}\t=>\t#{arr[1]}\t#{error}" if !interpolate
+        puts "#{arr[0]}\t=>\t#{arr[1]} : #{error}" if !interpolate
         avg_err += error if i == 1 && !interpolate
         i -= 1
       end
       if interpolate
-        actual = counts[counts.size - 1]
+        real = counts[counts.size - 1]
         guess1 = counts[counts.size - 2]
         guess2 = counts[counts.size - 3]
         interp = RAPTOR.interpolate(guess1[0], guess2[0], guess1[1], guess2[1])
-        error = RAPTOR.rotation_percent_error(actual[0], interp)
-        puts "#{error}\t#{actual} => #{interp} (#{guess1[0]}:#{guess1[1]} to #{guess2[0]}:#{guess2[1]})"
+        error = RAPTOR.rotation_percent_error(real[0], interp) if !euclidean_error
+        error = RAPTOR.rotation_euclidean_error(real[0], interp) if euclidean_error
+        puts "#{error}\t#{interp}"
         avg_err += error
       end
     end
