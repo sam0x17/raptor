@@ -12,22 +12,26 @@ module RAPTOR
       @color_mappings = {}
       @num_pixels = 0
       @rots_inverted = nil
-      @rotation_indexes = {}
+      @imgs = []
+    end
+
+    def image_files
+      @imgs
+    end
+
+    def rotation_by_id(rot_id)
+      @rots_inverted = @rotations.invert if @rots_inverted.nil?
+      @rots_inverted[rot_id]
     end
 
     def memory_size
+      ObjectSpace.memsize_of(self) +
       ObjectSpace.memsize_of(@grid) +
       ObjectSpace.memsize_of(@rotations) +
       ObjectSpace.memsize_of(@rots_inverted) +
-      ObjectSpace.memsize_of(@rotation_indexes) +
       ObjectSpace.memsize_of(@color_mappings) +
+      ObjectSpace.memsize_of(@imgs) +
       ObjectSpace.memsize_of(@unique_colors)
-    end
-
-    def [](x, y, c)
-      x = x.to_i
-      y = y.to_i
-      c = c.to_i
     end
 
     def self.filter_color(color)
@@ -73,29 +77,16 @@ module RAPTOR
         end
       end
       counts = counts.sort_by(&:last)
-      @rots_inverted = @rotations.invert if @rots_inverted.nil?
-      ret = {}
+      ret = []
       counts.each do |rot_id, count|
-        rot = @rots_inverted[rot_id]
-        ret[rot] = count
+        rot = rotation_by_id(rot_id)
+        ret << [rot, rot_id, count]
       end
       ret
     end
 
-    def get_file_index_by_rotation(rot)
-      ret = @rotation_indexes[rot]
-      if ret.nil?
-        puts "Rotation not found! #{rot}"
-        @rotation_indexes.each do |k, v|
-          puts "#{k}"
-        end
-        puts "query #{rot}"
-        puts "size #{@rotation_indexes.size}"
-      end
-      return ret
-    end
-
     def process_images(dir, num_index_colors=50)
+      @imgs = []
       @unique_colors = {}
       @grid = {}
       @rotations = {}
@@ -103,27 +94,31 @@ module RAPTOR
       @color_mappings = {}
       @indexed_colors = []
       @rots_inverted = nil
-      @rotation_indexes = {}
       i = 1
-      puts "Collecting color information..."
       Dir.glob("#{dir}/**/*.png") do |file|
+        @imgs << file
+        i += 1
+      end
+      @imgs.uniq!
+      @imgs.sort!
+      num_images = @imgs.size
+      puts "Discovered #{num_images} unique image files"
+      i = 1
+      @imgs.each do |file|
         print CLEAR_LINE
-        print "Reading pixels from image #{i} (#{file})\r"
+        print "Collecting color info from image #{i}/#{num_images} (#{file})\r"
         $stdout.flush
         collect_image_color_data(file)
         i += 1
       end
-      num_images = i
       puts ""
-      puts "Completed initial pass"
-      puts "Total images: #{num_images}"
       puts "Total pixels processed: #{@num_pixels}"
       puts "Total unique colors: #{@unique_colors.size}"
       puts "Generating LAB versions of unique colors..."
       @unique_colors = @unique_colors.keys.collect {|col| SortableColor.new(col) }
       puts "Sorting unique colors based on DeltaE distance from black..."
       @unique_colors.sort!
-      puts "Generating indexed color set..."
+      puts "Generating indexed color set (#{num_index_colors} index colors)..."
       num_index_colors -= 1
       index_step = @unique_colors.size / num_index_colors
       (0..num_index_colors).to_a.each do |num|
@@ -152,19 +147,14 @@ module RAPTOR
       @indexed_colors = nil
       puts "Collecting per-pixel pose information..."
       i = 1
-      Dir.glob("#{dir}/**/*.png") do |file|
+      @imgs.each do |file|
         print CLEAR_LINE
-        print "Reading pixels from image #{i}/#{num_images} (#{file})\r"
+        print "Analyzing pixels from image #{i}/#{num_images} (#{file})\r"
         img = ChunkyPNG::Image.from_file file
         $stdout.flush
-        #rot = File.basename(file, ".png").split("_").collect {|e| e.to_i}
-        #rx = rot[0]
-        #ry = rot[1]
-        #rz = rot[2]
         rx = img.metadata['rx'].to_f
         ry = img.metadata['ry'].to_f
         rz = img.metadata['rz'].to_f
-        @rotation_indexes[[rx, ry, rz]] = File.basename(file, ".png").to_i
         width = img.dimension.width
         height = img.dimension.height
         width.times do |col|
