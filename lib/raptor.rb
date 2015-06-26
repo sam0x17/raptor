@@ -28,7 +28,32 @@ module RAPTOR
     [r1[0] + f*v[0], r1[1] + f*v[1], r1[2] + f*v[2]]
   end
 
-  def self.experiment(img_dir, interpolate=false, euclidean_error=false)
+  def self.clear_output
+    current = Dir.pwd
+    Dir.chdir 'output'
+    system "rm *.png"
+    Dir.chdir current
+    true
+  end
+
+  def self.clear_experiment
+    current = Dir.pwd
+    Dir.chdir 'experiment_output'
+    system "rm * -r -f"
+    Dir.chdir current
+    true
+  end
+
+  def self.clear_macro_experiment
+    current = Dir.pwd
+    Dir.chdir 'macro_experiment_output'
+    system "rm * -r -f"
+    Dir.chdir current
+    system "rm output.txt"
+    true
+  end
+
+  def self.experiment(img_dir='output', interpolate=false, euclidean_error=false, copy_images=true, experiment_dir='experiment_output')
     puts "Experiment started using images contained in '#{Dir.pwd}/#{img_dir}'"
     $gh = RAPTOR::GridHash.new
     $gh.process_images(img_dir)
@@ -38,12 +63,11 @@ module RAPTOR
     test_set = imgs.first(1000)
     test_set.uniq!
     avg_err = 0.0
-    already_exist_count = 0
     puts "Running experiment..."
     test_set.each do |img_path|
       expected_str = File.basename(img_path, ".png")
       counts = $gh.identify_rotation(img_path).last(8)
-      test_dir = "experiment_output/#{expected_str}"
+      test_dir = "#{experiment_dir}/#{expected_str}"
       expected_rot_id = expected_str.to_i - 1
       expected = $gh.rotation_by_id(expected_rot_id)
       Dir.mkdir(test_dir)
@@ -53,31 +77,74 @@ module RAPTOR
         rot_id = arr[1] + 1
         count = arr[2]
         item_str = rot_id.to_s.rjust(7, "0")
-        error = RAPTOR.rotation_percent_error(expected, rot) if !euclidean_error
-        error = RAPTOR.rotation_euclidean_error(expected, rot) if euclidean_error
-        FileUtils.cp("#{img_dir}/#{item_str}.png", "#{test_dir}/#{i}.png")
-        puts "#{arr[0]}\t=>\t#{arr[1]} : #{error}" if !interpolate
-        avg_err += error if i == 1 && !interpolate
+        FileUtils.cp("#{img_dir}/#{item_str}.png", "#{test_dir}/#{i} #{count}.png") if copy_images
         i -= 1
       end
+      guess1 = counts[counts.size - 2]
+      guess2 = counts[counts.size - 3]
+      error = nil
       if interpolate
-        real = counts[counts.size - 1]
-        guess1 = counts[counts.size - 2]
-        guess2 = counts[counts.size - 3]
         interp = RAPTOR.interpolate(guess1[0], guess2[0], guess1[2], guess2[2])
-        error = RAPTOR.rotation_percent_error(real[0], interp) if !euclidean_error
-        error = RAPTOR.rotation_euclidean_error(real[0], interp) if euclidean_error
-        puts "#{error}\t#{interp}"
+        error = RAPTOR.rotation_percent_error(expected, interp) if !euclidean_error
+        error = RAPTOR.rotation_euclidean_error(expected, interp) if euclidean_error
         avg_err += error
+      else
+        error = RAPTOR.rotation_percent_error(expected, guess1[0]) if !euclidean_error
+        error = RAPTOR.rotation_euclidean_error(expected, guess1[0]) if euclidean_error
       end
+      $stdout.flush
+      print RAPTOR::GridHash::CLEAR_LINE
+      print "#{img_path} : #{error}\r"
+      $stdout.flush
+      avg_err += error
     end
-    puts "already existed: #{already_exist_count}"
+    avg_err *= 100.0 if !euclidean_error
+    puts ""
     puts "# tests: #{test_set.size}"
     puts "RAPTOR memory usage: #{$gh.memory_size} bytes"
     avg_err = avg_err / test_set.size.to_f
     puts "Average % error: #{avg_err}" if !euclidean_error
     puts "Average deviation: #{avg_error}" if euclidean_error
-    true
+    avg_err
+  end
+
+  def self.macro_experiment(cstep=5, c_range=(5..100), mstep=1, m_range=(5..40), use_interpolation=true, file='output.txt')
+    writeline = Proc.new {|line| open(file, 'a') { |f| f.puts(line) } }
+    puts "Clearing existing experiment data..."
+    RAPTOR.clear_macro_experiment
+    writeline.("=====================================")
+    writeline.("RAPTOR MACRO EXPERIMENT")
+    writeline.("=====================================")
+    writeline.("       CSTEP: #{cstep}")
+    writeline.("     C_RANGE: #{c_range}")
+    writeline.("       MSTEP: #{mstep}")
+    writeline.("     M_RANGE: #{m_range}")
+    writeline.(" INTERPOLATE: #{use_interpolation}")
+    writeline.("=====================================")
+    writeline.("")
+    writeline.("c\tm\terror")
+    maindir = Dir.pwd
+    puts "Macro experiment started (output being appended to '#{file}')"
+    c = c_range.first
+    m = m_range.first
+    while m <= m_range.last do
+      while c <= c_range.last do
+        puts "Deleting existing output images..."
+        RAPTOR.clear_output
+        puts "Started experiment round for c=#{c}, m=#{m}"
+        experiment_dir = "macro_experiment_output/c-#{c} m-#{m}"
+        Dir.chdir 'macro_experiment_output'
+        Dir.mkdir File.basename(experiment_dir)
+        Dir.chdir maindir
+        puts "Generating data..."
+        RAPTOR::DataGenerator.render_partitions(m)
+        error = RAPTOR.experiment('output', use_interpolation, false, true, experiment_dir)
+        writeline.("#{c}\t#{m}\t#{error}")
+        c += cstep
+      end
+      m += mstep
+      c = c_range.first
+    end
   end
 
   def self.image_gradient(img)
