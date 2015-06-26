@@ -15,4 +15,6 @@ output.png
 /output/*.png
 !/experiment_output/.keep
 /experiment_output/**/*
-/config/database.yml
+!/macro_experiment_output/.keep
+/macro_experiment_output/**/*
+output.txt
