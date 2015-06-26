@@ -31,6 +31,8 @@ module RAPTOR
       ObjectSpace.memsize_of(@rots_inverted) +
       ObjectSpace.memsize_of(@color_mappings) +
       ObjectSpace.memsize_of(@imgs) +
+      ObjectSpace.memsize_of(@combs) +
+      ObjectSpace.memsize_of(@indexed_colors) +
       ObjectSpace.memsize_of(@unique_colors)
     end
 
@@ -54,25 +56,41 @@ module RAPTOR
       @grid[key] << rot_id
     end
 
-    def identify_rotation(img)
+    def identify_rotation(img, sensitivity=0.5)
+      # calculate deltE threshold
+      deltaE_threshold = 0.0
+      @combs = @indexed_colors.combination(2).to_a if @combs.nil?
+      @combs.each do |pair|
+        deltaE_threshold += pair[0].get_deltaE(pair[1])
+      end
+      deltaE_threshold = 1.0 / sensitivity * (deltaE_threshold / @combs.size)
+      # process image
       img = ChunkyPNG::Image.from_file(img) if img.is_a? String
       counts = {}
       @rotations.each do |rot, rot_id|
         counts[rot_id] = 0
       end
-      total_rots = 0
       width = img.dimension.width
       height = img.dimension.height
       width.times do |x|
         height.times do |y|
           color = img[x, y]
           next if color == 0
-          color = GridHash.filter_color(color)
-          #TODO: need to handle colors outside of our unique_colors list!
-          # need to generate a new index mapping for the image using
-          # the color space of the image and our indexed color set
-          color = @index_mappings[color]
-          key = [x, y, color]
+          color = SortableColor.new(color)
+          color_index_match = @index_mappings[color.chunky]
+          if color_index_match.nil?
+            best_deltaE = nil
+            @indexed_colors.each do |index_color|
+              deltaE = color.get_deltaE(index_color)
+              if best_deltaE.nil? || deltaE < best_deltaE
+                best_deltaE = deltaE
+                color_index_match = index_color
+              end
+            end
+            color_index_match = color_index_match.chunky
+            next if best_deltaE > deltaE_threshold
+          end
+          key = [x, y, color_index_match]
           rots = @grid[key]
           rots.each do |rot_id|
             counts[rot_id] += 1
@@ -97,6 +115,7 @@ module RAPTOR
       @color_mappings = {}
       @indexed_colors = []
       @rots_inverted = nil
+      @combs = nil
       i = 1
       Dir.glob("#{dir}/**/*.png") do |file|
         @imgs << file
@@ -130,7 +149,7 @@ module RAPTOR
         @indexed_colors << @unique_colors[index]
       end
       puts "Generating RGB to LAB color mappings..."
-      @unique_colors.select {|col| @color_mappings[col.color_chunky] = col.color_lab}
+      @unique_colors.select {|col| @color_mappings[col.chunky] = col.lab}
       puts "Generating indexed color mappings..."
       @index_mappings = {}
       tmp_rgb = Color::RGB.new(0, 0, 0)
@@ -139,16 +158,15 @@ module RAPTOR
         best_deltaE = nil
         best_match = nil
         @indexed_colors.each do |index|
-          deltaE = tmp_rgb.delta_e94(lab_val, index.color_lab)
+          deltaE = tmp_rgb.delta_e94(lab_val, index.lab)
           if best_deltaE.nil? || deltaE < best_deltaE
             best_deltaE = deltaE
-            best_match = index.color_chunky
+            best_match = index.chunky
           end
         end
         @index_mappings[chunky_val] = best_match
       end
       @unique_colors = nil # save memory
-      @indexed_colors = nil
       puts "Collecting per-pixel pose information..."
       i = 1
       @imgs.each do |file|
@@ -181,15 +199,12 @@ module RAPTOR
       BASE = Color::RGB.new(255, 255, 255).to_lab
 
       def initialize(color)
-        bytes = ChunkyPNG::Color.to_truecolor_bytes(color)
-        @color_chunky = ChunkyPNG::Color.rgb(bytes[0], bytes[1], bytes[2])
-        @color_rgb = Color::RGB.new(bytes[0], bytes[1], bytes[2])
-        @color_lab = @color_rgb.to_lab
+        @bytes = ChunkyPNG::Color.to_truecolor_bytes(color)
       end
 
       def get_deltaE_comparison(other)
-        self_deltaE = @color_rgb.delta_e94(BASE, @color_lab)
-        other_deltaE = @color_rgb.delta_e94(BASE, other.instance_variable_get(:@color_lab))
+        self_deltaE = rgb.delta_e94(BASE, lab)
+        other_deltaE = rgb.delta_e94(BASE, other.lab)
         [self_deltaE, other_deltaE]
       end
 
@@ -214,19 +229,26 @@ module RAPTOR
       end
 
       def get_deltaE(other)
-        @color_rgb.delta_e94(@color_lab, other.color_lab)
+        rgb.delta_e94(lab, other.lab)
       end
 
-      def color_chunky
-        @color_chunky
+      def bytes
+        @bytes
       end
 
-      def color_rgb
-        @color_rgb
+      def chunky
+        @chunky = ChunkyPNG::Color.rgb(bytes[0], bytes[1], bytes[2]) if @chunky.nil?
+        @chunky
       end
 
-      def color_lab
-        @color_lab
+      def rgb
+        @rgb = Color::RGB.new(@bytes[0], @bytes[1], @bytes[2]) if @rgb.nil?
+        @rgb
+      end
+
+      def lab
+        @lab = rgb.to_lab if @lab.nil?
+        @lab
       end
     end
 

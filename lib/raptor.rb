@@ -108,7 +108,7 @@ module RAPTOR
     avg_err
   end
 
-  def self.macro_experiment(cstep=1, c_range=(2..10), mstep=1, m_range=(5..40), use_interpolation=false, file='output.txt')
+  def self.macro_experiment(cstep=1, c_range=(10..10), mstep=1, m_range=(2..60), file='output.txt')
     writeline = Proc.new {|line| open(file, 'a') { |f| f.puts(line) } }
     puts "Clearing existing experiment data..."
     RAPTOR.clear_macro_experiment
@@ -119,10 +119,9 @@ module RAPTOR
     writeline.("     C_RANGE: #{c_range}")
     writeline.("       MSTEP: #{mstep}")
     writeline.("     M_RANGE: #{m_range}")
-    writeline.(" INTERPOLATE: #{use_interpolation}")
     writeline.("=====================================")
     writeline.("")
-    writeline.("c\tm\terror")
+    writeline.("c\tm\tint\terror")
     maindir = Dir.pwd
     puts "Macro experiment started (output being appended to '#{file}')"
     c = c_range.first
@@ -131,15 +130,17 @@ module RAPTOR
       puts "Deleting existing output images..."
       RAPTOR.clear_output
       while c <= c_range.last do
-        puts "Started experiment round for c=#{c}, m=#{m}"
-        experiment_dir = "macro_experiment_output/c-#{c} m-#{m}"
-        Dir.chdir 'macro_experiment_output'
-        Dir.mkdir File.basename(experiment_dir)
-        Dir.chdir maindir
-        puts "Generating data..."
-        RAPTOR::DataGenerator.render_partitions(m)
-        error = RAPTOR.experiment('output', c, use_interpolation, false, true, experiment_dir)
-        writeline.("#{c}\t#{m}\t#{error.round(3)}")
+        [true, false].each do |use_interpolation|
+          puts "Started experiment round for c=#{c}, m=#{m}, interpolation=#{use_interpolation}"
+          experiment_dir = "macro_experiment_output/c-#{c} m-#{m} int-#{use_interpolation}"
+          Dir.chdir 'macro_experiment_output'
+          Dir.mkdir File.basename(experiment_dir)
+          Dir.chdir maindir
+          puts "Generating data..."
+          RAPTOR::DataGenerator.render_partitions(m)
+          error = RAPTOR.experiment('output', c, use_interpolation, false, true, experiment_dir)
+          writeline.("#{c}\t#{m}\t#{use_interpolation}\t#{error.round(3)}")
+        end
         c += cstep
       end
       m += mstep
