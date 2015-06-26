@@ -68,6 +68,9 @@ module RAPTOR
           color = img[x, y]
           next if color == 0
           color = GridHash.filter_color(color)
+          #TODO: need to handle colors outside of our unique_colors list!
+          # need to generate a new index mapping for the image using
+          # the color space of the image and our indexed color set
           color = @index_mappings[color]
           key = [x, y, color]
           rots = @grid[key]
@@ -123,6 +126,7 @@ module RAPTOR
       index_step = @unique_colors.size / num_index_colors
       (0..num_index_colors).to_a.each do |num|
         index = num * index_step
+        index = @unique_colors.size - 1 if index > @unique_colors.size - 1
         @indexed_colors << @unique_colors[index]
       end
       puts "Generating RGB to LAB color mappings..."
