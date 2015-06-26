@@ -53,10 +53,10 @@ module RAPTOR
     true
   end
 
-  def self.experiment(img_dir='output', interpolate=false, euclidean_error=false, copy_images=true, experiment_dir='experiment_output')
+  def self.experiment(img_dir='output', num_index_colors=50, interpolate=false, euclidean_error=false, copy_images=true, experiment_dir='experiment_output')
     puts "Experiment started using images contained in '#{Dir.pwd}/#{img_dir}'"
     $gh = RAPTOR::GridHash.new
-    $gh.process_images(img_dir)
+    $gh.process_images(img_dir, num_index_colors)
     puts "Shuffling image set..."
     imgs = $gh.image_files.clone
     imgs.shuffle!
@@ -108,7 +108,7 @@ module RAPTOR
     avg_err
   end
 
-  def self.macro_experiment(cstep=5, c_range=(5..100), mstep=1, m_range=(5..40), use_interpolation=true, file='output.txt')
+  def self.macro_experiment(cstep=1, c_range=(2..10), mstep=1, m_range=(5..40), use_interpolation=false, file='output.txt')
     writeline = Proc.new {|line| open(file, 'a') { |f| f.puts(line) } }
     puts "Clearing existing experiment data..."
     RAPTOR.clear_macro_experiment
@@ -128,9 +128,9 @@ module RAPTOR
     c = c_range.first
     m = m_range.first
     while m <= m_range.last do
+      puts "Deleting existing output images..."
+      RAPTOR.clear_output
       while c <= c_range.last do
-        puts "Deleting existing output images..."
-        RAPTOR.clear_output
         puts "Started experiment round for c=#{c}, m=#{m}"
         experiment_dir = "macro_experiment_output/c-#{c} m-#{m}"
         Dir.chdir 'macro_experiment_output'
@@ -138,8 +138,8 @@ module RAPTOR
         Dir.chdir maindir
         puts "Generating data..."
         RAPTOR::DataGenerator.render_partitions(m)
-        error = RAPTOR.experiment('output', use_interpolation, false, true, experiment_dir)
-        writeline.("#{c}\t#{m}\t#{error}")
+        error = RAPTOR.experiment('output', c, use_interpolation, false, true, experiment_dir)
+        writeline.("#{c}\t#{m}\t#{error.round(3)}")
         c += cstep
       end
       m += mstep

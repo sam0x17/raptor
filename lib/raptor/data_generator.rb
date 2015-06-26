@@ -104,7 +104,7 @@ module RAPTOR
                 $stdout.flush
                 st = " " * max_width
                 st += "\r"
-                st = "Skipping pose that already exists: #{[rx, ry, rz]} : #{pose[:img_filename]}\r"
+                st = "Skipping existing pose: #{pose[:img_filename]}\r"
                 max_width = st.size if st.size > max_width
                 print st
                 $stdout.flush
