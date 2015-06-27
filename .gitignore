@@ -13,8 +13,7 @@ tmp
 /.project
 output.png
 /output/*.png
-!/experiment_output/.keep
 /experiment_output/**/*
-!/macro_experiment_output/.keep
 /macro_experiment_output/**/*
 output.txt
+!*.keep
