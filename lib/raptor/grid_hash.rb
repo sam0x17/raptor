@@ -196,7 +196,7 @@ module RAPTOR
     end
 
     class SortableColor
-      BASE = Color::RGB.new(255, 255, 255).to_lab
+      BASE = Color::RGB.new(128, 128, 128).to_lab
 
       def initialize(color)
         @bytes = ChunkyPNG::Color.to_truecolor_bytes(color)
