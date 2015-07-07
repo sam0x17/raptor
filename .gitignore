@@ -17,3 +17,4 @@ output.png
 /macro_experiment_output/**/*
 output.txt
 !*.keep
+test_output.png
