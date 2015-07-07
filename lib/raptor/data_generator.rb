@@ -93,45 +93,39 @@ module RAPTOR
           core_count += 1
           core_num = core_count
           core_set.clone.each do |img_num, rot|
-            begin
-              rx = rot[0]
-              ry = rot[1]
-              rz = rot[2]
-              pose = {}
-              pose[:img_filename] = "#{data_directory}/#{img_num.to_s.rjust(7, '0')}.png"
-              if File.exist?(pose[:img_filename])
-                img_num += 1
-                $stdout.flush
-                st = " " * max_width
-                st += "\r"
-                st = "Skipping existing pose: #{pose[:img_filename]}\r"
-                max_width = st.size if st.size > max_width
-                print st
-                $stdout.flush
-                next
-              end
+            rx = rot[0]
+            ry = rot[1]
+            rz = rot[2]
+            pose = {}
+            pose[:img_filename] = "#{data_directory}/#{img_num.to_s.rjust(7, '0')}.png"
+            if File.exist?(pose[:img_filename])
+              img_num += 1
               $stdout.flush
               st = " " * max_width
               st += "\r"
-              print st
-              st = "Core #{core_num}: pose ##{img_num}/#{final_set.size} #{[rx, ry, rz]}...\r"
+              st = "Skipping existing pose: #{pose[:img_filename]}\r"
               max_width = st.size if st.size > max_width
               print st
               $stdout.flush
-              pose[:width] = options[:width] if options[:width]
-              pose[:height] = options[:height] if options[:height]
-              pose[:rx] = rx.to_s.to_f.to_s # ensure uniqueness despite floating point imprecision
-              pose[:ry] = ry.to_s.to_f.to_s
-              pose[:rz] = rz.to_s.to_f.to_s
-              pose[:model] = options[:model] if options[:model]
-              generated_pose = RAPTOR::DataGenerator.generate_pose(pose)
-              RAPTOR::DataGenerator.render_pose(generated_pose)
-              img_num += 1
-            rescue => err
-              puts ""
-              puts "An error occured while generating image ##{img_num}"
-              puts "#{err}"
+              next
             end
+            $stdout.flush
+            st = " " * max_width
+            st += "\r"
+            print st
+            st = "Core #{core_num}: pose ##{img_num}/#{final_set.size} #{[rx, ry, rz]}...\r"
+            max_width = st.size if st.size > max_width
+            print st
+            $stdout.flush
+            pose[:width] = options[:width] if options[:width]
+            pose[:height] = options[:height] if options[:height]
+            pose[:rx] = rx.to_s.to_f.to_s # ensure uniqueness despite floating point imprecision
+            pose[:ry] = ry.to_s.to_f.to_s
+            pose[:rz] = rz.to_s.to_f.to_s
+            pose[:model] = options[:model] if options[:model]
+            generated_pose = RAPTOR::DataGenerator.generate_pose(pose)
+            RAPTOR::DataGenerator.render_pose(generated_pose)
+            img_num += 1
           end
           Thread.exit
         end

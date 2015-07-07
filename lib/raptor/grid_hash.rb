@@ -5,7 +5,7 @@ module RAPTOR
 
     CLEAR_LINE = "                                                                                \r"
 
-    def initialize(options={})
+    def initialize
       @unique_colors = {}
       @grid = {}
       @rotations = {}
@@ -199,7 +199,8 @@ module RAPTOR
       BASE = Color::RGB.new(128, 128, 128).to_lab
 
       def initialize(color)
-        @bytes = ChunkyPNG::Color.to_truecolor_bytes(color)
+        @bytes = ChunkyPNG::Color.to_truecolor_bytes(color) if color.is_a? Integer
+        @bytes = color if color.is_a? Array
       end
 
       def get_deltaE_comparison(other)
@@ -219,8 +220,7 @@ module RAPTOR
       end
 
       def ==(other)
-        deltaE = get_deltaE_comparison(other)
-        deltaE[0] == deltaE[1]
+        chunky == other.chunky
       end
 
       def <=>(other)
@@ -246,10 +246,20 @@ module RAPTOR
         @rgb
       end
 
+      def hsl
+        @hsl = rgb.to_hsl if @hsl.nil?
+        @hsl
+      end
+
       def lab
         @lab = rgb.to_lab if @lab.nil?
         @lab
       end
+
+      def hash
+        @bytes.hash
+      end
+
     end
 
     def collect_image_color_data(img_path)

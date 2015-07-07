@@ -1,7 +1,8 @@
-require 'raptor/grid_hash'
-require 'raptor/data_generator'
 require 'oily_png'
 require 'fileutils'
+require 'raptor/grid_hash'
+require 'raptor/kmeans'
+require 'raptor/data_generator'
 module RAPTOR
 
   def self.rotation_percent_error(expected, actual)
