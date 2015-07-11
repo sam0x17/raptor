@@ -54,7 +54,7 @@ module RAPTOR
     true
   end
 
-  def self.experiment(img_dir='output', num_index_colors=50, interpolate=false, euclidean_error=false, copy_images=true, experiment_dir='experiment_output')
+  def self.experiment(img_dir='output', num_index_colors=8, interpolate=false, euclidean_error=false, copy_images=true, experiment_dir='experiment_output')
     puts "Experiment started using images contained in '#{Dir.pwd}/#{img_dir}'"
     $gh = RAPTOR::GridHash.new
     $gh.process_images(img_dir, num_index_colors)

@@ -27,6 +27,11 @@ module RAPTOR
       puts "done reading image"
       puts "num unique colors: #{colors.size}"
       colors = colors.keys
+      sortable_colors = []
+      colors.each do |color|
+        sortable_colors << GridHash::SortableColor.new(color)
+      end
+      colors = sortable_colors
       num_clusters = 8
       puts "attempting to create #{num_clusters} clusters"
       $kmeans = KMeans.new(colors, num_clusters)
@@ -68,11 +73,6 @@ module RAPTOR
     end
 
     def initialize(colors, num_centroids)
-      sortable_colors = []
-      colors.each do |color|
-        sortable_colors << GridHash::SortableColor.new(color)
-      end
-      colors = sortable_colors
       chosen_centroids = colors.sample(num_centroids)
       groups = {}
       num_iterations = 0
@@ -103,10 +103,12 @@ module RAPTOR
         refresh_centroids.()
         regroup.()
         key = []
+        key_print = ""
         groups.each do |centroid_color, centroid_set|
           key << centroid_color.chunky
+          key_print += "#{centroid_color.rgb.html} "
         end
-        #puts "#{key}"
+        puts "#{key_print}"
         break if prev_iterations.has_key?(key)
         prev_iterations[key] = true
       end
