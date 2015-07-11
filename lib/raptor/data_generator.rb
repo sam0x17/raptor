@@ -4,9 +4,9 @@ module RAPTOR
 
     def self.generate_pose(options={})
       set_default = Proc.new {|key,value| options[key] = value if !options.has_key?(key) }
-      set_default.(:rx, rand(0.0..1.0))
-      set_default.(:ry, rand(0.0..1.0))
-      set_default.(:rz, rand(0.0..1.0))
+      set_default.(:rx, rand(-1.0..1.0))
+      set_default.(:ry, rand(-1.0..1.0))
+      set_default.(:rz, rand(-1.0..1.0))
       set_default.(:width, 100)
       set_default.(:height, 100)
       set_default.(:model, 'models/hamina.3DS')
@@ -50,9 +50,9 @@ module RAPTOR
 
     def self.render_partitions(points_per_dimension=16, start_index=1, end_index=nil, options={})
       data_directory = 'output'
-      step = 1.0 / points_per_dimension
+      step = 2.0 / points_per_dimension
       points_per_dimension -= 1
-      rx_set = (0..points_per_dimension).to_a.collect { |n| n * step }
+      rx_set = (0..points_per_dimension).to_a.collect { |n| n * step - 1.0}
       ry_set = rx_set.clone
       rz_set = rx_set.clone
       end_index = rx_set.size * ry_set.size * rz_set.size if end_index.nil?
