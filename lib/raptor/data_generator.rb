@@ -7,8 +7,8 @@ module RAPTOR
       set_default.(:rx, rand(0.0..1.0))
       set_default.(:ry, rand(0.0..1.0))
       set_default.(:rz, rand(0.0..1.0))
-      set_default.(:width, 60)
-      set_default.(:height, 60)
+      set_default.(:width, 100)
+      set_default.(:height, 100)
       set_default.(:model, 'models/hamina.3DS')
       set_default.(:img_filename, 'output.png')
       {rx: options[:rx], ry: options[:ry], rz: options[:rz],

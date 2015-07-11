@@ -3,7 +3,7 @@ module RAPTOR
   class KMeans
 
     def self.test
-      img = ChunkyPNG::Image.from_file('test_data/hamina.png')
+      img = ChunkyPNG::Image.from_file('test_data/hamina_pose.png')
       width = img.dimension.width
       height = img.dimension.height
       colors = {}
@@ -32,7 +32,7 @@ module RAPTOR
       $kmeans = KMeans.new(colors, num_clusters)
       puts "created #{num_clusters} clusters"
       puts "loading carrier image..."
-      img = ChunkyPNG::Image.from_file('test_data/carriers.png')
+      img = ChunkyPNG::Image.from_file('test_data/hamina_pose.png')
       width = img.dimension.width
       height = img.dimension.height
       height.times do |y|
@@ -51,58 +51,36 @@ module RAPTOR
       true
     end
 
-    def self.filter_nan(n)
-      return 0 if n.nan?
-      return n.round
+    def self.average_colors(colors)
+      r = 0
+      g = 0
+      b = 0
+      colors.each do |color|
+        r += color.rgb.red.round
+        g += color.rgb.green.round
+        b += color.rgb.blue.round
+      end
+      sf = colors.size.to_f
+      r /= sf
+      g /= sf
+      b /= sf
+      RAPTOR::GridHash::SortableColor.new([r.round, g.round, b.round])
     end
 
     def initialize(colors, num_centroids)
-      filter_nan = Proc.new {|n| n.nan? ? 0 : n.round }
       sortable_colors = []
       colors.each do |color|
         sortable_colors << GridHash::SortableColor.new(color)
       end
       colors = sortable_colors
       chosen_centroids = colors.sample(num_centroids)
-      #colors.sort!
-      #chosen_centroids = nil
-      #best_deltaE = nil
-      #10.times do
-      #  centroid_set = colors.sample(num_centroids)
-      #  centroid_set_combs = centroid_set.combination(2).to_a
-      #  avg_deltaE = 0.0
-      #  centroid_set_combs.each do |pair|
-      #    avg_deltaE += pair[0].get_deltaE(pair[1])
-      #  end
-      #  avg_deltaE /= centroid_set_combs.size
-      #  if chosen_centroids.nil? || avg_deltaE > best_deltaE
-      #    chosen_centroids = centroid_set
-      #    best_deltaE = avg_deltaE
-      #  end
-      #end
       groups = {}
       num_iterations = 0
       refresh_centroids = Proc.new do
         num_iterations += 1
         chosen_centroids = []
         groups.each do |centroid, group|
-          hsl_avg = [0.0, 0.0, 0.0]
-          group.keys.each do |color|
-            hsl = color.hsl.to_a
-            hsl_avg[0] += hsl[0]
-            hsl_avg[1] += hsl[1]
-            hsl_avg[2] += hsl[2]
-          end
-          gs = group.size.to_f
-          hsl_avg[0] /= gs
-          hsl_avg[1] /= gs
-          hsl_avg[2] /= gs
-          avg_color = Color::HSL.from_fraction(hsl_avg[0], hsl_avg[1], hsl_avg[2]).to_rgb
-          avg_color = [filter_nan.(avg_color.red),
-                       filter_nan.(avg_color.green),
-                       filter_nan.(avg_color.blue)]
-          avg_color = RAPTOR::GridHash::SortableColor.new(avg_color)
-          chosen_centroids << avg_color
+          chosen_centroids << RAPTOR::KMeans.average_colors(group.keys)
         end
       end
       regroup = Proc.new do
@@ -128,7 +106,7 @@ module RAPTOR
         groups.each do |centroid_color, centroid_set|
           key << centroid_color.chunky
         end
-        puts "#{key}"
+        #puts "#{key}"
         break if prev_iterations.has_key?(key)
         prev_iterations[key] = true
       end
