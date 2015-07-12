@@ -16,10 +16,8 @@ module RAPTOR
        model: options[:model], img_filename: options[:img_filename]}
     end
 
-    def self.render_pose(pose={})
+    def self.render_pose(pose={}, autocrop=false)
       required_params = [:rx, :ry, :rz, :width, :height, :model, :img_filename]
-      pose.keys.each {|param_key| raise UnsupportedParamError if !required_params.include?(param_key)}
-      required_params.each {|param_key| raise MissingRequiredParamError if !pose.keys.include?(param_key)}
       system({"model" => pose[:model],
               "rx" => pose[:rx].to_s, "ry" => pose[:ry].to_s, "rz" => pose[:rz].to_s,
               "width" => pose[:width].to_s, "height" => pose[:height].to_s,
@@ -38,6 +36,11 @@ module RAPTOR
       img.metadata['rx'] = pose[:rx].to_s
       img.metadata['ry'] = pose[:ry].to_s
       img.metadata['rz'] = pose[:rz].to_s
+      if autocrop
+        dest_w = pose[:width]
+        dest_h = pose[:height]
+        img.trim!(0)
+      end
       #img = RAPTOR.test_filter(img)
       img.save(pose[:img_filename])
       true
