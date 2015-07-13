@@ -109,7 +109,7 @@ module RAPTOR
     avg_err
   end
 
-  def self.macro_experiment(c=8, s_vals=[0.5], m_vals=[5, 10, 15, 20, 25, 30, 35], autocrop_values=[true, false], interp_values=[false], file='output.txt')
+  def self.macro_experiment(c=8, s_vals=[0.5], m_vals=[5,10,15,20,25,30,35,40,45], autocrop_values=[true, false], interp_values=[false], file='output.txt')
     writeline = Proc.new {|line| open(file, 'a') { |f| f.puts(line) } }
     puts "Clearing existing experiment data..."
     RAPTOR.clear_macro_experiment
@@ -130,11 +130,21 @@ module RAPTOR
             puts "Generating data..."
             RAPTOR::DataGenerator.render_partitions(m, 1, nil, {autocrop: autocrop})
             error = RAPTOR.experiment('output', c, use_interpolation, false, true, experiment_dir)
-            writeline.("#{c}\t#{s}\t#{m}\t#{autocrop}\t#{use_interpolation}\t#{error.round(4)}")
+            writeline.("#{c}\t#{m}\t#{s}\t#{autocrop}\t#{use_interpolation}\t#{error.round(4)}")
           end
         end
       end
     end
+  end
+
+  def self.generate_noise_image(w, h)
+    img = ChunkyPNG::Image.new(w, h)
+    w.times do |x|
+      h.times do |y|
+        img[x, y] = ChunkyPNG::Color.rgb(rand(0..255), rand(0..255), rand(0..255))
+      end
+    end
+    img
   end
 
   def self.smart_resize_bounds(sw, sh, dw, dh)
