@@ -137,6 +137,14 @@ module RAPTOR
     end
   end
 
+  def self.with_noise(orig_img)
+    w = orig_img.dimension.width
+    h = orig_img.dimension.height
+    img = RAPTOR.generate_noise_image(w, h)
+    img.compose!(orig_img, 0, 0)
+    img
+  end
+
   def self.generate_noise_image(w, h)
     img = ChunkyPNG::Image.new(w, h)
     w.times do |x|
