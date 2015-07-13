@@ -56,12 +56,12 @@ module RAPTOR
 
     def identify_rotation(img, sensitivity=0.5)
       # calculate deltE threshold
-      deltaE_threshold = 0.0
-      @combs = @kmeans.centroids.combination(2).to_a if @combs.nil?
-      @combs.each do |pair|
-        deltaE_threshold += pair[0].get_deltaE(pair[1])
-      end
-      deltaE_threshold = 1.0 / sensitivity * (deltaE_threshold / @combs.size)
+      #deltaE_threshold = 0.0
+      #@combs = @kmeans.centroids.combination(2).to_a if @combs.nil?
+      #@combs.each do |pair|
+      #  deltaE_threshold += pair[0].get_deltaE(pair[1])
+      #end
+      #deltaE_threshold = 1.0 / sensitivity * (deltaE_threshold / @combs.size)
       # process image
       img = ChunkyPNG::Image.from_file(img) if img.is_a? String
       counts = {}

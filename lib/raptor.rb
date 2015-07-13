@@ -54,7 +54,7 @@ module RAPTOR
     true
   end
 
-  def self.experiment(img_dir='output', num_index_colors=8, interpolate=false, euclidean_error=false, copy_images=true, experiment_dir='experiment_output')
+  def self.experiment(img_dir='output', num_index_colors=10, interpolate=false, euclidean_error=false, copy_images=true, experiment_dir='experiment_output')
     puts "Experiment started using images contained in '#{Dir.pwd}/#{img_dir}'"
     $gh = RAPTOR::GridHash.new
     $gh.process_images(img_dir, num_index_colors)
@@ -109,32 +109,31 @@ module RAPTOR
     avg_err
   end
 
-  def self.macro_experiment(c=8, s_vals=[0.5], m_vals=[15], file='output.txt', test_interpolation=false)
+  def self.macro_experiment(c=8, s_vals=[0.5], m_vals=[5, 10, 15, 20, 25, 30, 35], autocrop_values=[true, false], interp_values=[false], file='output.txt')
     writeline = Proc.new {|line| open(file, 'a') { |f| f.puts(line) } }
     puts "Clearing existing experiment data..."
     RAPTOR.clear_macro_experiment
-    writeline.("c\tm\ts\tint\terror")
+    writeline.("c\tm\ts\tauto\tint\terror")
     maindir = Dir.pwd
     puts "Macro experiment started (output being appended to '#{file}')"
     m_vals.each do |m|
-      puts "Deleting existing output images..."
-      RAPTOR.clear_output
-      s_vals.each do |s|
-        interps = [true, false] if test_interpolation
-        interps = [false] if !test_interpolation
-        interps.each do |use_interpolation|
-          puts "Started experiment round for c=#{c}, m=#{m}, s=#{s}, interpolation=#{use_interpolation}"
-          experiment_dir = "macro_experiment_output/c-#{c} m-#{m} s-#{s} int-#{use_interpolation}"
-          Dir.chdir 'macro_experiment_output'
-          Dir.mkdir File.basename(experiment_dir)
-          Dir.chdir maindir
-          puts "Generating data..."
-          RAPTOR::DataGenerator.render_partitions(m)
-          error = RAPTOR.experiment('output', c, use_interpolation, false, true, experiment_dir)
-          writeline.("#{c}\t#{s}\t#{m}\t#{use_interpolation}\t#{error.round(4)}")
+      autocrop_values.each do |autocrop|
+        puts "Deleting existing output images..."
+        RAPTOR.clear_output
+        s_vals.each do |s|
+          interp_values.each do |use_interpolation|
+            puts "Started experiment round for c=#{c}, m=#{m}, s=#{s}, autocrop=#{autocrop} interpolation=#{use_interpolation}"
+            experiment_dir = "macro_experiment_output/c-#{c} m-#{m} s-#{s} auto-#{autocrop} int-#{use_interpolation}"
+            Dir.chdir 'macro_experiment_output'
+            Dir.mkdir File.basename(experiment_dir)
+            Dir.chdir maindir
+            puts "Generating data..."
+            RAPTOR::DataGenerator.render_partitions(m, 1, nil, {autocrop: autocrop})
+            error = RAPTOR.experiment('output', c, use_interpolation, false, true, experiment_dir)
+            writeline.("#{c}\t#{s}\t#{m}\t#{autocrop}\t#{use_interpolation}\t#{error.round(4)}")
+          end
         end
       end
-      m += mstep
     end
   end
 

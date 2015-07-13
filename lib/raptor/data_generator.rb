@@ -7,41 +7,62 @@ module RAPTOR
       set_default.(:rx, rand(-1.0..1.0))
       set_default.(:ry, rand(-1.0..1.0))
       set_default.(:rz, rand(-1.0..1.0))
-      set_default.(:width, 100)
-      set_default.(:height, 100)
-      set_default.(:model, 'models/hamina.3DS')
+      set_default.(:width, 70)
+      set_default.(:height, 70)
+      set_default.(:model, 'models/hamina_no_antenna.3ds')
       set_default.(:img_filename, 'output.png')
       {rx: options[:rx], ry: options[:ry], rz: options[:rz],
        width: options[:width], height: options[:height],
        model: options[:model], img_filename: options[:img_filename]}
     end
 
-    def self.render_pose(pose={}, autocrop=false)
-      required_params = [:rx, :ry, :rz, :width, :height, :model, :img_filename]
+    def self.render_pose(pose={})
+      set_default = Proc.new {|key,value| pose[key] = value if !pose.has_key?(key) }
+      # required_params = [:rx, :ry, :rz, :width, :height, :model, :img_filename, :autocrop]
+      set_default.(:autocrop, true)
+      sw = nil
+      sh = nil
+      rw = pose[:width]
+      rh = pose[:height]
+      if pose[:autocrop]
+        rw = (pose[:width] * 3.5).round
+        rh = (pose[:height] * 3.5).round
+        sw = pose[:width]
+        sh = pose[:height]
+      end
       system({"model" => pose[:model],
               "rx" => pose[:rx].to_s, "ry" => pose[:ry].to_s, "rz" => pose[:rz].to_s,
-              "width" => pose[:width].to_s, "height" => pose[:height].to_s,
+              "width" => rw.to_s, "height" => rh.to_s,
               "img_filename" => pose[:img_filename]},
               'blender -b -P render.py > /dev/null')
       if $? == 1
         puts "A rendering error occured -- retrying in verbose mode"
         system({"model" => pose[:model],
                 "rx" => pose[:rx].to_s, "ry" => pose[:ry].to_s, "rz" => pose[:rz].to_s,
-                "width" => pose[:width].to_s, "height" => pose[:height].to_s,
+                "width" => rw.to_s, "height" => rh.to_s,
                 "img_filename" => pose[:img_filename]},
                 'blender -b -P render.py')
         raise RenderError
       end
       img = ChunkyPNG::Image.from_file(pose[:img_filename])
-      img.metadata['rx'] = pose[:rx].to_s
-      img.metadata['ry'] = pose[:ry].to_s
-      img.metadata['rz'] = pose[:rz].to_s
-      if autocrop
+      if pose[:autocrop]
         dest_w = pose[:width]
         dest_h = pose[:height]
         img.trim!(0)
+
+        resize_bounds = RAPTOR.smart_resize_bounds(img.dimension.width,
+                                                   img.dimension.height,
+                                                   sw,
+                                                   sh)
+        img.resample_bilinear!(resize_bounds[:w], resize_bounds[:h])
+        img2 = ChunkyPNG::Image.new(sw, sh)
+        img2.compose!(img, resize_bounds[:x], resize_bounds[:y])
+        img = img2
+        img2 = nil
       end
-      #img = RAPTOR.test_filter(img)
+      img.metadata['rx'] = pose[:rx].to_s
+      img.metadata['ry'] = pose[:ry].to_s
+      img.metadata['rz'] = pose[:rz].to_s
       img.save(pose[:img_filename])
       true
     end
