@@ -54,7 +54,7 @@ module RAPTOR
       @grid[key] << rot_id
     end
 
-    def identify_rotation(img, sensitivity=0.5)
+    def identify_rotation(img, sensitivity=0.5, add_noise=false)
       # calculate deltE threshold
       #deltaE_threshold = 0.0
       #@combs = @kmeans.centroids.combination(2).to_a if @combs.nil?
@@ -64,6 +64,7 @@ module RAPTOR
       #deltaE_threshold = 1.0 / sensitivity * (deltaE_threshold / @combs.size)
       # process image
       img = ChunkyPNG::Image.from_file(img) if img.is_a? String
+      img = RAPTOR.with_noise(img) if add_noise
       counts = {}
       @rotations.each do |rot, rot_id|
         counts[rot_id] = 0
@@ -78,8 +79,10 @@ module RAPTOR
           color_index_match = @kmeans.closest_color(color)
           key = [x, y, color_index_match]
           rots = @grid[key]
-          rots.each do |rot_id|
-            counts[rot_id] += 1
+          if rots
+            rots.each do |rot_id|
+              counts[rot_id] += 1
+            end
           end
         end
       end
@@ -105,7 +108,6 @@ module RAPTOR
         @imgs << file
         i += 1
       end
-      @imgs.uniq!
       @imgs.sort!
       num_images = @imgs.size
       puts "Discovered #{num_images} unique image files"

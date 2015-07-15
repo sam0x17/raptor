@@ -11,15 +11,16 @@ module RAPTOR
       set_default.(:height, 70)
       set_default.(:model, 'models/hamina_no_antenna.3ds')
       set_default.(:img_filename, 'output.png')
+      set_default.(:autocrop, true)
       {rx: options[:rx], ry: options[:ry], rz: options[:rz],
        width: options[:width], height: options[:height],
-       model: options[:model], img_filename: options[:img_filename]}
+       model: options[:model], img_filename: options[:img_filename],
+       autocrop: options[:autocrop]}
     end
 
     def self.render_pose(pose={})
       set_default = Proc.new {|key,value| pose[key] = value if !pose.has_key?(key) }
       # required_params = [:rx, :ry, :rz, :width, :height, :model, :img_filename, :autocrop]
-      set_default.(:autocrop, true)
       sw = nil
       sh = nil
       rw = pose[:width]
@@ -64,12 +65,61 @@ module RAPTOR
       img.metadata['ry'] = pose[:ry].to_s
       img.metadata['rz'] = pose[:rz].to_s
       img.save(pose[:img_filename])
-      true
+      pose
     end
 
     def self.render_random_pose(options={})
       pose = RAPTOR::DataGenerator.generate_pose(options)
       RAPTOR::DataGenerator.render_pose(pose)
+    end
+
+    def self.render_test_set(num_samples, options={})
+      data_directory = 'test_output'
+      num_cores = Facter.value('processors')['count']
+      puts "Attempting to render this run: #{num_samples}"
+      core_sets = []
+      last_core = 0
+      num_cores.times do |core_num|
+        core_sets[core_num] = []
+      end
+      num_samples.times do |i|
+        core_sets[last_core] << i + 1
+        last_core += 1
+        last_core = 0 if last_core >= num_cores
+      end
+      threads = []
+      core_num = 1
+      max_width = 80
+      core_sets.each do |core_set|
+        cn = core_num
+        opt_base = options.clone
+        Kernel.srand
+        threads << Thread.new do
+          core_set.each do |img_num|
+            opt = opt_base.clone
+            opt[:img_filename] = "#{data_directory}/#{img_num.to_s.rjust(7, '0')}.png"
+            pose = RAPTOR::DataGenerator.generate_pose(opt)
+            rx = pose[:rx]
+            ry = pose[:ry]
+            rz = pose[:rz]
+            $stdout.flush
+            st = " " * max_width
+            st += "\r"
+            print st
+            st = "Core #{cn}: pose ##{img_num}/#{num_samples} #{[rx, ry, rz]}...\r"
+            max_width = st.size if st.size > max_width
+            print st
+            $stdout.flush
+            RAPTOR::DataGenerator.render_pose(pose)
+          end
+          Thread.exit
+        end
+        core_num += 1
+      end
+      threads.each {|t| t.join}
+      sleep(0.1)
+      $stdout.flush
+      nil
     end
 
     def self.render_partitions(points_per_dimension=16, start_index=1, end_index=nil, options={})

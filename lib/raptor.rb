@@ -29,6 +29,14 @@ module RAPTOR
     [r1[0] + f*v[0], r1[1] + f*v[1], r1[2] + f*v[2]]
   end
 
+  def self.clear_test_output
+    current = Dir.pwd
+    Dir.chdir 'test_output'
+    system "rm *.png"
+    Dir.chdir current
+    true
+  end
+
   def self.clear_output
     current = Dir.pwd
     Dir.chdir 'output'
@@ -54,23 +62,30 @@ module RAPTOR
     true
   end
 
-  def self.experiment(img_dir='output', num_index_colors=10, interpolate=false, euclidean_error=false, copy_images=true, experiment_dir='experiment_output')
+  def self.experiment(img_dir='output', num_index_colors=10, interpolate=false, add_noise=false, euclidean_error=false, copy_images=true, experiment_dir='experiment_output', test_output='test_output')
     puts "Experiment started using images contained in '#{Dir.pwd}/#{img_dir}'"
     $gh = RAPTOR::GridHash.new
     $gh.process_images(img_dir, num_index_colors)
     puts "Shuffling image set..."
     imgs = $gh.image_files.clone
     imgs.shuffle!
-    test_set = imgs.first(1000)
-    test_set.uniq!
+    test_set = []
+    puts "Discovering test set..."
+    Dir.glob("#{test_output}/**/*.png") do |file|
+      test_set << file
+    end
+    puts "Discovered #{test_set.size} images in test set"
     avg_err = 0.0
     puts "Running experiment..."
     test_set.each do |img_path|
       expected_str = File.basename(img_path, ".png")
       counts = $gh.identify_rotation(img_path).last(8)
       test_dir = "#{experiment_dir}/#{expected_str}"
-      expected_rot_id = expected_str.to_i - 1
-      expected = $gh.rotation_by_id(expected_rot_id)
+      img = ChunkyPNG::Image.from_file(img_path)
+      rx = img.metadata['rx'].to_f
+      ry = img.metadata['ry'].to_f
+      rz = img.metadata['rz'].to_f
+      expected = [rx, ry, rz]
       Dir.mkdir(test_dir)
       i = counts.size - 1
       counts.each do |arr|
@@ -81,8 +96,9 @@ module RAPTOR
         FileUtils.cp("#{img_dir}/#{item_str}.png", "#{test_dir}/#{i} #{count}.png") if copy_images
         i -= 1
       end
-      guess1 = counts[counts.size - 2]
-      guess2 = counts[counts.size - 3]
+      FileUtils.cp(img_path, "#{test_dir}/_actual.png") if copy_images
+      guess1 = counts[counts.size - 1]
+      guess2 = counts[counts.size - 2]
       error = nil
       if interpolate
         interp = RAPTOR.interpolate(guess1[0], guess2[0], guess1[2], guess2[2])
@@ -109,28 +125,32 @@ module RAPTOR
     avg_err
   end
 
-  def self.macro_experiment(c=8, s_vals=[0.5], m_vals=[5,10,15,20,25,30,35,40,45], autocrop_values=[true, false], interp_values=[false], file='output.txt')
+  def self.macro_experiment(c=8, s_vals=[0.5], m_vals=[5,10,15,20,25,30,35,40,45], autocrop_vals=[true], add_noise_vals=[true, false], interp_vals=[false], file='output.txt')
     writeline = Proc.new {|line| open(file, 'a') { |f| f.puts(line) } }
     puts "Clearing existing experiment data..."
     RAPTOR.clear_macro_experiment
-    writeline.("c\tm\ts\tauto\tint\terror")
+    writeline.("c\tm\ts\tauto\tnoise\tint\terror")
     maindir = Dir.pwd
     puts "Macro experiment started (output being appended to '#{file}')"
     m_vals.each do |m|
-      autocrop_values.each do |autocrop|
-        puts "Deleting existing output images..."
+      autocrop_vals.each do |autocrop|
+        puts "Deleting existing output and test images..."
         RAPTOR.clear_output
+        RAPTOR.clear_test_output
+        RAPTOR::DataGenerator.render_test_set(200)
         s_vals.each do |s|
-          interp_values.each do |use_interpolation|
-            puts "Started experiment round for c=#{c}, m=#{m}, s=#{s}, autocrop=#{autocrop} interpolation=#{use_interpolation}"
-            experiment_dir = "macro_experiment_output/c-#{c} m-#{m} s-#{s} auto-#{autocrop} int-#{use_interpolation}"
-            Dir.chdir 'macro_experiment_output'
-            Dir.mkdir File.basename(experiment_dir)
-            Dir.chdir maindir
-            puts "Generating data..."
-            RAPTOR::DataGenerator.render_partitions(m, 1, nil, {autocrop: autocrop})
-            error = RAPTOR.experiment('output', c, use_interpolation, false, true, experiment_dir)
-            writeline.("#{c}\t#{m}\t#{s}\t#{autocrop}\t#{use_interpolation}\t#{error.round(4)}")
+          interp_vals.each do |use_interpolation|
+            add_noise_vals.each do |add_noise|
+              puts "Started experiment round for c=#{c}, m=#{m}, s=#{s}, autocrop=#{autocrop} add_noise=#{add_noise} interpolation=#{use_interpolation}"
+              experiment_dir = "macro_experiment_output/c-#{c} m-#{m} s-#{s} auto-#{autocrop} noise-#{add_noise} int-#{use_interpolation}"
+              Dir.chdir 'macro_experiment_output'
+              Dir.mkdir File.basename(experiment_dir)
+              Dir.chdir maindir
+              puts "Generating data..."
+              RAPTOR::DataGenerator.render_partitions(m, 1, nil, {autocrop: autocrop})
+              error = RAPTOR.experiment('output', c, use_interpolation, add_noise, false, true, experiment_dir)
+              writeline.("#{c}\t#{m}\t#{s}\t#{autocrop}\t#{add_noise}\t#{use_interpolation}\t#{error.round(4)}")
+            end
           end
         end
       end

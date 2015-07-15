@@ -15,6 +15,7 @@ output.png
 /output/*.png
 /experiment_output/**/*
 /macro_experiment_output/**/*
+/test_output/**/*
 output.txt
 !*.keep
 test_output.png
