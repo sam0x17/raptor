@@ -202,6 +202,17 @@ module RAPTOR
     {x: x, y: y, w: w, h: h}
   end
 
+  def self.autocrop(img, dw, dh)
+    img.trim!
+    sw = img.dimension.width
+    sh = img.dimension.height
+    resize_bounds = RAPTOR.smart_resize_bounds(sw, sh, dw, dh)
+    img2 = ChunkyPNG::Image.new(dw, dh)
+    img.resample_nearest_neighbor!(resize_bounds[:w], resize_bounds[:h])
+    img2.compose!(img, resize_bounds[:x], resize_bounds[:y])
+    img2
+  end
+
   def self.get_image_gradient(img)
     img = ChunkyPNG::Image.from_file(img) if img.is_a? String
     width = img.dimension.width
