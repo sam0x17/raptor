@@ -125,7 +125,7 @@ module RAPTOR
     avg_err
   end
 
-  def self.macro_experiment(c=8, s_vals=[0.5], m_vals=[5,10,15,20,25,30,35,40,45], autocrop_vals=[true], add_noise_vals=[true, false], interp_vals=[false], file='output.txt')
+  def self.macro_experiment(c=8, s_vals=[0.5], m_vals=[45,50,55,60], autocrop_vals=[true], add_noise_vals=[true, false], interp_vals=[false], file='output.txt')
     writeline = Proc.new {|line| open(file, 'a') { |f| f.puts(line) } }
     puts "Clearing existing experiment data..."
     RAPTOR.clear_macro_experiment
@@ -137,7 +137,7 @@ module RAPTOR
         puts "Deleting existing output and test images..."
         RAPTOR.clear_output
         RAPTOR.clear_test_output
-        RAPTOR::DataGenerator.render_test_set(200)
+        RAPTOR::DataGenerator.render_test_set(1000)
         s_vals.each do |s|
           interp_vals.each do |use_interpolation|
             add_noise_vals.each do |add_noise|
@@ -194,8 +194,8 @@ module RAPTOR
     h = (tdh - voff).floor
     while true
       w += 1; next if w + x * 2 < dw
-      w -= 1; next if w + x * 2 > dh
-      h += 1; next if h + y * 2 < dw
+      w -= 1; next if w + x * 2 > dw
+      h += 1; next if h + y * 2 < dh
       h -= 1; next if h + y * 2 > dh
       break
     end
