@@ -1,0 +1,3 @@
+class GridHash
+
+end

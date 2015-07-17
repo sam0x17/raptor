@@ -11,11 +11,7 @@ tmp
 /lib/bundle/man
 *.project
 /.project
-output.png
-/output/*.png
-/experiment_output/**/*
-/macro_experiment_output/**/*
-/test_output/**/*
+/data/imgs/**/*.png
+/data/test_imgs/**/*.png
 output.txt
 !*.keep
-test_output.png
