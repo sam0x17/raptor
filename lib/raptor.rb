@@ -1,7 +1,7 @@
 require 'oily_png'
 require 'fileutils'
 require 'util'
-require 'color_kmeans'
+require 'kmeans_intensity'
 require 'dataset'
 require 'grid_hash'
 require 'rcolor'

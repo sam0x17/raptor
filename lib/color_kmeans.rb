@@ -1,4 +1,0 @@
-class ColorKMeans
-
-end
-
