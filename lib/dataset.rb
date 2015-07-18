@@ -147,6 +147,7 @@ class Dataset
       end
     end
     threads.each {|t| t.join}
+    sleep(0.2)
     puts "" if verbose?
     puts "Successfully rendered/loaded #{final_set.size} samples!" if verbose?
     puts "Caching sample filenames..." if verbose?

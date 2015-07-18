@@ -7,3 +7,9 @@ require 'grid_hash'
 require 'rcolor'
 
 Dataset.register_model :hamina, 'data/models/hamina_no_antenna.3ds'
+
+def experiment
+  $dataset = Dataset.new(m: 10)
+  $gh = GridHash.new($dataset, 10)
+  true
+end
