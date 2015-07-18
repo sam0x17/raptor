@@ -150,12 +150,12 @@ class Dataset
     puts "" if verbose?
     puts "Successfully rendered/loaded #{final_set.size} samples!" if verbose?
     puts "Caching sample filenames..." if verbose?
-    @imgs = []
+    @img_paths = []
     Dir.glob("#{@imgs_dir}/**/*.png") do |file|
-      @imgs << file
+      @img_paths << file
     end
     puts "Sorting sample filenames..." if verbose?
-    @imgs.sort!
+    @img_paths.sort!
     true
   end
 
