@@ -27,6 +27,49 @@ def smart_resize_bounds(sw, sh, dw, dh)
   {x: x, y: y, w: w, h: h}
 end
 
+def get_image_intensity_gradient(img)
+  img = ChunkyPNG::Image.from_file(img) if img.is_a? String
+  width = img.dimension.width
+  height = img.dimension.height
+  grid = []
+  width.times do |x|
+    height.times do |y|
+      grid[x] = [] if grid[x].nil?
+      orig_color = img[x, y]
+      vpos = Proc.new do |tx, ty|
+        ret = nil
+        if tx >= 0 && tx < width && ty >= 0 && ty < height
+          ret = [tx, ty]
+        else
+          ret = [x, y]
+        end
+        ret
+      end
+      points = []
+      points << vpos.(x - 1, y)
+      points << vpos.(x - 1, y - 1)
+      points << vpos.(x, y - 1)
+      colors = []
+      points.each {|point| colors << ChunkyPNG::Color.to_truecolor_bytes(img[point[0], point[1]])}
+      orig_color_bytes = ChunkyPNG::Color.to_truecolor_bytes(orig_color)
+      avg_diff = [0.0, 0.0, 0.0]
+      colors.each do |color|
+        diff = [(color[0] - orig_color_bytes[0]).abs,
+                (color[1] - orig_color_bytes[1]).abs,
+                (color[2] - orig_color_bytes[2]).abs]
+        avg_diff[0] += diff[0].to_f
+        avg_diff[1] += diff[1].to_f
+        avg_diff[2] += diff[2].to_f
+      end
+      avg_diff[0] = (avg_diff[0] / points.size).round
+      avg_diff[1] = (avg_diff[1] / points.size).round
+      avg_diff[2] = (avg_diff[2] / points.size).round
+      grid[x][y] = ((avg_diff[0].to_f + avg_diff[1].to_f + avg_diff[2].to_f) / 3.0).round
+    end
+  end
+  grid
+end
+
 def get_image_gradient(img, grayscale=false)
   img = ChunkyPNG::Image.from_file(img) if img.is_a? String
   width = img.dimension.width

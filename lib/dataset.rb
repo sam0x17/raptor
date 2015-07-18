@@ -34,6 +34,10 @@ class Dataset
     @imgs_dir
   end
 
+  def img_paths
+    @img_paths
+  end
+
   def initialize(data_options={})
     # set up options
     set_default = Proc.new {|key,value| data_options[key] = value if !data_options.has_key?(key) }
@@ -62,7 +66,8 @@ class Dataset
     step = 2.0 / m
     m -= 1
     rx_set = (0..m).to_a.collect { |n| n * step - 1.0 }
-    ry_set = rz_set = rx_set
+    ry_set = rx_set.clone
+    rz_set = rx_set.clone
     final_set = []
     rx_set.each do |rx|
       ry_set.each do |ry|
@@ -144,6 +149,13 @@ class Dataset
     threads.each {|t| t.join}
     puts "" if verbose?
     puts "Successfully rendered/loaded #{final_set.size} samples!" if verbose?
+    puts "Caching sample filenames..." if verbose?
+    @imgs = []
+    Dir.glob("#{@imgs_dir}/**/*.png") do |file|
+      @imgs << file
+    end
+    puts "Sorting sample filenames..." if verbose?
+    @imgs.sort!
     true
   end
 
