@@ -159,6 +159,120 @@ class Dataset
     @img_paths.sort!
     true
   end
+  
+  def self.render_test_set(num_samples, data_options={})
+    # set up options
+    set_default = Proc.new {|key,value| data_options[key] = value if !data_options.has_key?(key) }
+    set_default.(:m, 5) # num samples ^ (1/3)
+    set_default.(:model, :hamina) # default model symbol to use (can be registered with register_model)
+    set_default.(:width, 60) # width of rendered image 
+    set_default.(:height, 60) # height of rendered images
+    set_default.(:autocrop, true) # whether autocropping should be used
+    set_default.(:verbose, true) # whether verbose status messages should be displayed
+    set_default.(:imgs_dir, Dataset.find_imgs_dir(data_options))
+    puts "Dataset: '#{data_options[:imgs_dir]}'" if verbose?
+
+    # create data directory (if applicable)
+    FileUtils.mkdir_p(@imgs_dir)
+
+    # prepare list of poses
+    m = @m
+    step = 2.0 / m
+    m -= 1
+    rx_set = (0..m).to_a.collect { |n| n * step - 1.0 }
+    ry_set = rx_set.clone
+    rz_set = rx_set.clone
+    final_set = []
+    rx_set.each do |rx|
+      ry_set.each do |ry|
+        rz_set.each do |rz|
+          final_set << [rx, ry, rz]
+        end
+      end
+    end
+    puts "Total samples: #{final_set.size}" if verbose?
+
+    # spread out poses over available CPU cores
+    num_cores = Facter.value('processors')['count']
+    last_core = 0
+    core_sets = {}
+    num_cores.times {|core_num| core_sets[core_num] = {} }
+    i = 1
+    final_set.each do |val|
+      core_sets[last_core][i] = val
+      last_core += 1
+      last_core = 0 if last_core >= num_cores
+      i += 1
+    end
+
+    # create threads and begin rendering
+    current_core = 0
+    max_width = 80
+    threads = []
+    mut = Mutex.new
+    core_sets.values.each do |core_set|
+      current_core += 1
+      threads << Thread.new(current_core, core_set, data_options, final_set.size) do |icurrent_core, icore_set, idata_options, final_set_size|
+        icore_set.each do |img_num, orientation|
+          rx = orientation[0]
+          ry = orientation[1]
+          rz = orientation[2]
+          pose = {}
+          pose[:img_filename] = "#{idata_options[:imgs_dir]}/#{img_num.to_s.rjust(7, '0')}.png"
+          pose[:width] = idata_options[:width]
+          pose[:height] = idata_options[:height]
+          pose[:autocrop] = idata_options[:autocrop]
+          pose[:model] = idata_options[:model]
+          pose[:rx] = rx.to_s.to_f.to_s
+          pose[:ry] = ry.to_s.to_f.to_s
+          pose[:rz] = rz.to_s.to_f.to_s
+
+          # skip existing images if applicable
+          if File.exist?(pose[:img_filename])
+            if idata_options[:verbose]
+              mut.lock
+              st = " " * max_width
+              st += "\r"
+              print st
+              st = "Skipping existing pose: #{[rx.round(4), ry.round(4), rz.round(4)]}\r"
+              max_width = st.size if st.size > max_width
+              print st
+              $stdout.flush
+              mut.unlock
+            end
+            next
+          end
+
+          # otherwise render the pose
+          if idata_options[:verbose]
+            mut.lock
+            st = " " * max_width
+            st += "\r"
+            print st
+            st = "Core #{icurrent_core}: rendering pose ##{img_num}/#{final_set_size} #{[rx.round(4), ry.round(4), rz.round(4)]}...\r"
+            max_width = st.size if st.size > max_width
+            print st
+            $stdout.flush
+            mut.unlock
+          end
+          Dataset.render_pose(pose)
+        end
+        Thread.exit
+      end
+    end
+    threads.each {|t| t.join}
+    sleep(0.2)
+    puts "" if verbose?
+    puts "Successfully rendered/loaded #{final_set.size} samples!" if verbose?
+    puts "Caching sample filenames..." if verbose?
+    @img_paths = []
+    Dir.glob("#{@imgs_dir}/**/*.png") do |file|
+      @img_paths << file
+    end
+    puts "Sorting sample filenames..." if verbose?
+    @img_paths.sort!
+    true
+  end
 
   def self.render_pose(pose={})
     sw = nil
