@@ -198,7 +198,7 @@ first_run = False
 
 # render pose
 bpy.data.worlds['World'].light_settings.use_environment_light = True
-bpy.data.worlds['World'].light_settings.environment_energy = 0.9
+bpy.data.worlds['World'].light_settings.environment_energy = 0.75
 render.resolution_x = width
 render.resolution_y = height
 render.resolution_percentage = 100
