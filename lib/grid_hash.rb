@@ -1,7 +1,6 @@
 class GridHash
 
   def initialize(dataset, num_centroids, verbose=true)
-    puts "Collecting intensity information..." if verbose
     intensities = {}
     i = 0
     dataset.img_paths.each do |path|
@@ -30,7 +29,7 @@ class GridHash
       i += 1
       print " " * 80 if verbose
       print "\r" if verbose
-      print "Analyzing image ##{i}/#{dataset.img_paths.size}...\r" if verbose
+      print "Analyzing image ##{i}/#{dataset.img_paths.size}..." if verbose
       $stdout.flush
       img = ChunkyPNG::Image.from_file(path)
       rx = img.metadata['rx'].to_f
@@ -41,6 +40,7 @@ class GridHash
       height = grad[0].size
       width.times do |x|
         height.times do |y|
+          next if grad[x][y] == -1
           intensity = @kmeans.closest_intensity(grad[x][y])
           intensity_diff = intensity[1]
           intensity = intensity[0]
@@ -56,7 +56,7 @@ class GridHash
     puts "" if verbose
   end
 
-  def identify_orientation(img)
+  def identify_orientation(img, return_multiple=false)
     img = ChunkyPNG::Image.from_file(img) if img.is_a? String
     counts = {}
     @orientations.each do |orientation, orientation_id|
@@ -67,6 +67,7 @@ class GridHash
     grad = get_image_intensity_gradient(img)
     width.times do |x|
       height.times do |y|
+        next if grad[x][y] == -1
         intensity = @kmeans.closest_intensity(grad[x][y])
         intensity_diff = intensity[1]
         intensity = intensity[0]
@@ -78,14 +79,27 @@ class GridHash
         end
       end
     end
-    counts = counts.sort_by(&:last)
-    ret = []
-    counts.each do |orientation_id, count|
-      @orientations_inverted = @orientations.invert if !@orientations_inverted
-      orientation = @orientations_inverted[orientation_id]
-      ret << [orientation, orientation_id, count]
+    if return_multiple
+      counts = counts.sort_by(&:last)
+      ret = []
+      counts.each do |orientation_id, count|
+        @orientations_inverted = @orientations.invert if !@orientations_inverted
+        orientation = @orientations_inverted[orientation_id]
+        ret << {orientation: orientation, id: orientation_id, confidence: count}
+      end
+      return ret
     end
-    ret
+    best_count = 0
+    best_orientation_id = nil
+    counts.each do |orientation_id, count|
+      if count > best_count
+        best_count = count
+        best_orientation_id = orientation_id
+      end
+    end
+    @orientations_inverted = @orientations.invert if !@orientations_inverted
+    best_orientation = @orientations_inverted[best_orientation_id]
+    {orientation: best_orientation, id: best_orientation_id, confidence: best_count}
   end
 
 end

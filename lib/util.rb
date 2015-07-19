@@ -1,4 +1,28 @@
 
+def euclidean_distance_3d(p, q)
+  a = q[0] - p[0]
+  b = q[1] - p[1]
+  c = q[2] - p[2]
+  Math.sqrt(a*a + b*b + c*c)
+end
+
+def orientation_percent_error(expected, actual)
+  ((((expected[0].to_f - actual[0].to_f) / 1.0).abs +
+  ((expected[1].to_f - actual[1].to_f) / 1.0).abs +
+  ((expected[2].to_f - actual[2].to_f) / 1.0).abs) / 3.0) / 2.0
+end
+
+def directory_size(path)
+  path << '/' unless path.end_with?('/')
+
+  raise RuntimeError, "#{path} is not a directory" unless File.directory?(path)
+
+  total_size = 0
+  Dir["#{path}**/*"].each do |f|
+    total_size += File.size(f) if File.file?(f) && File.size?(f)
+  end
+  total_size
+end
 
 def smart_resize_bounds(sw, sh, dw, dh)
   raise "dest width and dest height cannot both be nil!"  if dw.nil? && dh.nil?
@@ -36,6 +60,10 @@ def get_image_intensity_gradient(img)
     height.times do |y|
       grid[x] = [] if grid[x].nil?
       orig_color = img[x, y]
+      if orig_color == 0
+        grid[x][y] = -1
+        next
+      end
       vpos = Proc.new do |tx, ty|
         ret = nil
         if tx >= 0 && tx < width && ty >= 0 && ty < height
@@ -61,9 +89,9 @@ def get_image_intensity_gradient(img)
         avg_diff[1] += diff[1].to_f
         avg_diff[2] += diff[2].to_f
       end
-      avg_diff[0] = (avg_diff[0] / points.size).round
-      avg_diff[1] = (avg_diff[1] / points.size).round
-      avg_diff[2] = (avg_diff[2] / points.size).round
+      avg_diff[0] = avg_diff[0] / points.size.to_f
+      avg_diff[1] = avg_diff[1] / points.size.to_f
+      avg_diff[2] = avg_diff[2] / points.size.to_f
       grid[x][y] = ((avg_diff[0].to_f + avg_diff[1].to_f + avg_diff[2].to_f) / 3.0).round
     end
   end
