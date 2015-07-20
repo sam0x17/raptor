@@ -41,7 +41,6 @@ class KMeansIntensity
         key << centroid_intensity
       end
       key.sort!
-      puts "#{key}"
       break if prev_iterations.has_key?(key)
       prev_iterations[key] = true
     end
@@ -50,9 +49,12 @@ class KMeansIntensity
     chosen_centroids.sort!
     puts "#{chosen_centroids}"
     @centroids = chosen_centroids
+    @cache = {}
   end
 
   def closest_intensity(intensity)
+    cache_hit = @cache[intensity]
+    return cache_hit if !cache_hit.nil?
     best_match_diff = nil
     best_match = nil
     @centroids.each do |possible_match|
@@ -62,7 +64,9 @@ class KMeansIntensity
         best_match_diff = diff
       end
     end
-    [best_match, best_match_diff]
+    ret = [best_match, best_match_diff]
+    @cache[intensity] = ret
+    return ret
   end
 
 end

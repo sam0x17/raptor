@@ -55,15 +55,11 @@ def get_image_intensity_gradient(img)
   img = ChunkyPNG::Image.from_file(img) if img.is_a? String
   width = img.dimension.width
   height = img.dimension.height
-  grid = []
+  grid = {}
   width.times do |x|
     height.times do |y|
-      grid[x] = [] if grid[x].nil?
       orig_color = img[x, y]
-      if orig_color == 0
-        grid[x][y] = -1
-        next
-      end
+      next if orig_color == 0
       vpos = Proc.new do |tx, ty|
         ret = nil
         if tx >= 0 && tx < width && ty >= 0 && ty < height
@@ -92,7 +88,7 @@ def get_image_intensity_gradient(img)
       avg_diff[0] = avg_diff[0] / points.size.to_f
       avg_diff[1] = avg_diff[1] / points.size.to_f
       avg_diff[2] = avg_diff[2] / points.size.to_f
-      grid[x][y] = ((avg_diff[0].to_f + avg_diff[1].to_f + avg_diff[2].to_f) / 3.0).round
+      grid[[x, y]] = ((avg_diff[0].to_f + avg_diff[1].to_f + avg_diff[2].to_f) / 3.0).round
     end
   end
   grid

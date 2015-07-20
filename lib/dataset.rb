@@ -37,6 +37,10 @@ class Dataset
     @img_paths
   end
 
+  def imgs
+    @imgs
+  end
+
   def initialize(data_options={})
     # set up options
     data_options = data_options.clone
@@ -150,13 +154,19 @@ class Dataset
     sleep(0.0001)
     $stdout.flush
     puts "" if verbose?
+    puts "Sorting image paths" if verbose?
     @img_paths = []
     Dir.glob("#{@imgs_dir}/**/*.png") do |file|
       @img_paths << file
     end
     @img_paths.sort!
-    puts "Successfully rendered/loaded #{final_set.size} samples!" if verbose?
-    puts "File size: #{(directory_size(@imgs_dir) / 1000.0 / 1000.0).round(3)} mb"
+    puts "Pre-loading images" if verbose?
+    @imgs = []
+    @img_paths.each do |img_path|
+      @imgs << ChunkyPNG::Image.from_file(img_path)
+    end
+    puts "Successfully rendered & loaded #{final_set.size} samples!" if verbose?
+    puts "On-disk file size: #{(directory_size(@imgs_dir) / 1000.0 / 1000.0).round(3)} mb"
     true
   end
 
@@ -253,15 +263,15 @@ class Dataset
     threads.each {|t| t.join}
     sleep(0.0001)
     $stdout.flush
-    img_paths = []
-    Dir.glob("#{data_directory}/**/*.png") do |file|
-      img_paths << file
+    imgs = []
+    puts ""
+    puts "Pre-loading test set"
+    Dir.glob("#{data_directory}/**/*.png").sample(num_samples).sort.each do |file|
+      imgs << ChunkyPNG::Image.from_file(file)
     end
-    img_paths.sort!
-    puts "" if data_options[:verbose]
-    puts "Successfully rendered/loaded #{final_set.size} test samples!" if data_options[:verbose]
+    puts "Successfully rendered & loaded #{imgs.size} test samples!" if data_options[:verbose]
     puts "File size: #{(directory_size(data_directory) / 1000.0 / 1000.0).round(3)} mb"
-    img_paths
+    imgs
   end
 
   def self.render_pose(pose={})
