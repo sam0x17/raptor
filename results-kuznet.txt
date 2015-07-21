@@ -1,9 +1,0 @@
-{:model=>:kuznet, :m=>5, :average_error=>0.2085864359990088, :average_id_time=>0.006769999999999982, :min_error=>0.010109958478277892, :max_error=>0.7588905459564935}
-{:model=>:kuznet, :m=>10, :average_error=>0.1309072547080762, :average_id_time=>0.008840000000000032, :min_error=>0.0034699931477215804, :max_error=>0.7255572126231602}
-{:model=>:kuznet, :m=>15, :average_error=>0.08416783123489778, :average_id_time=>0.013949999999999364, :min_error=>0.002394277068709908, :max_error=>0.7813533114687402}
-{:model=>:kuznet, :m=>5, :average_error=>0.2085864359990088, :average_id_time=>0.0069599999999999974, :min_error=>0.010109958478277892, :max_error=>0.7588905459564935}
-{:model=>:kuznet, :m=>10, :average_error=>0.1309072547080762, :average_id_time=>0.009360000000000014, :min_error=>0.0034699931477215804, :max_error=>0.7255572126231602}
-{:model=>:kuznet, :m=>15, :average_error=>0.08416783123489778, :average_id_time=>0.014930000000000008, :min_error=>0.002394277068709908, :max_error=>0.7813533114687402}
-{:model=>:kuznet, :m=>5, :average_error=>0.2085864359990088, :average_id_time=>0.006650000000000091, :min_error=>0.010109958478277892, :max_error=>0.7588905459564935}
-{:model=>:kuznet, :m=>10, :average_error=>0.1309072547080762, :average_id_time=>0.009199999999999932, :min_error=>0.0034699931477215804, :max_error=>0.7255572126231602}
-{:model=>:kuznet, :m=>15, :average_error=>0.08416783123489778, :average_id_time=>0.014230000000000246, :min_error=>0.002394277068709908, :max_error=>0.7813533114687402}
