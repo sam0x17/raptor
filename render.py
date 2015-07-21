@@ -181,7 +181,8 @@ view3d = bpy.context.screen.areas[areas['VIEW_3D']].spaces[0]
 
 # fit model to viewport
 compute_bb()
-scale_factor = 8.0 / max_dim
+scale_factor = 2.0 * (2.0 / max_dim)
+#scale_factor = 2.0 * max_dim
 view3d.pivot_point = "CURSOR"
 view3d.cursor_location = center_world
 for obj in bpy.context.selected_objects:
@@ -198,7 +199,7 @@ first_run = False
 
 # render pose
 bpy.data.worlds['World'].light_settings.use_environment_light = True
-bpy.data.worlds['World'].light_settings.environment_energy = 0.75
+bpy.data.worlds['World'].light_settings.environment_energy = 0.65
 render.resolution_x = width
 render.resolution_y = height
 render.resolution_percentage = 100

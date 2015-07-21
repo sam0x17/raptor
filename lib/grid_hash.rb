@@ -127,7 +127,7 @@ class GridHash
       end
     end
     best_orientation = @orientations_inverted[best_orientation_id]
-    {orientation: best_orientation, id: best_orientation_id, confidence: best_count}
+    return {orientation: best_orientation, id: best_orientation_id, confidence: best_count}
   end
 
 end

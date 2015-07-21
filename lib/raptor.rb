@@ -10,6 +10,26 @@ require 'grid_hash'
 require 'rcolor'
 
 Dataset.register_model :hamina, 'data/models/hamina_no_antenna.3ds'
+Dataset.register_model :kirov, 'data/models/Kirov.3ds'
+Dataset.register_model :kuznet, 'data/models/Kuznet.3ds'
+Dataset.register_model :sovddg, 'data/models/SovDDG.3ds'
+Dataset.register_model :udaloy, 'data/models/Udaloy_l.3ds'
+
+Dataset.register_model :m4a1_s, 'data/models/m4a1.3ds'
+
+Dataset.register_model :sphere, 'data/models/sphere.3ds'
+
+def super_experiment(m_vals=[5,10,15,20,25,30,35])
+  writeline = Proc.new {|line, model| open("results-#{model}.txt", 'a') { |f| f.puts(line) }}
+  models = [:m4a1_s, :udaloy, :kuznet, :kirov, :sovddg, :hamina]
+  m_vals.each do |m|
+    models.each do |model|
+      puts "beginning tests for #{model}..."
+      results = experiment(1000, m: m, model: model)
+      writeline.("#{results}", model)
+    end
+  end
+end
 
 def experiment(num_test_samples=500, options={})
   writeline = Proc.new {|line| open('results.txt', 'a') { |f| f.puts(line) }}
@@ -84,5 +104,5 @@ def experiment(num_test_samples=500, options={})
   puts "Average id time: #{(avg_id_time * 1000.0).round(4)} ms"
   puts "Re-enabling garbage collection"
   GC.enable
-  true
+  {model: options[:model], m: options[:m], average_error: avg_err, average_id_time: avg_id_time, min_error: min_err, max_error: max_err}
 end

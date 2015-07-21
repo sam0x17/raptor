@@ -180,7 +180,9 @@ class Dataset
     set_default.(:autocrop, true) # whether autocropping should be used
     set_default.(:verbose, true) # whether verbose status messages should be displayed
 
-    data_directory = data_options[:imgs_dir] = 'data/test_imgs'
+    data_directory = data_options[:imgs_dir] = "data/test_imgs/#{data_options[:model].to_s} #{data_options[:width]}x#{data_options[:height]} crop-#{data_options[:autocrop]}"
+
+    Dir.mkdir(data_directory) if !File.exist?(data_directory)
 
     # prepare list of poses
     final_set = []
@@ -282,8 +284,8 @@ class Dataset
     model_sym = pose[:model]
     pose[:model] = Dataset.model_path(pose[:model]) if pose[:model].is_a? Symbol
     if pose[:autocrop]
-      rw = (pose[:width] * 4.0).round
-      rh = (pose[:height] * 4.0).round
+      rw = (pose[:width] * 10.0).round
+      rh = (pose[:height] * 10.0).round
       sw = pose[:width]
       sh = pose[:height]
     end
