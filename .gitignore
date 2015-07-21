@@ -15,3 +15,4 @@ tmp
 /data/test_imgs/**/*.png
 output.txt
 !*.keep
+results*.txt
