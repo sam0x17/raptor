@@ -293,7 +293,7 @@ class Dataset
             "rx" => pose[:rx].to_s, "ry" => pose[:ry].to_s, "rz" => pose[:rz].to_s,
             "width" => rw.to_s, "height" => rh.to_s,
             "img_filename" => pose[:img_filename]},
-            'blender -b -P render.py > /dev/null')
+            'blender -b -noaudio -P render.py > /dev/null')
     img = ChunkyPNG::Image.from_file(pose[:img_filename])
     img.metadata['model'] = model_sym.to_s
     if pose[:autocrop]
