@@ -6,6 +6,63 @@ def euclidean_distance_3d(p, q)
   Math.sqrt(a*a + b*b + c*c)
 end
 
+def euclidean_distance_2d(p, q)
+  a = q[0] - p[0]
+  b = q[1] - p[1]
+  Math.sqrt(a*a + b*b)
+end
+
+def point_along_line_2d(origin, direction, distance)
+  [origin[0] + direction[0] * distance,
+   origin[1] + direction[1] * distance]
+end
+
+def mag2d(v)
+  Math.sqrt(v[0]*v[0] + v[1]*v[1])
+end
+
+def norm2d(v)
+  mag = mag2d(v)
+  [v[0] / mag,
+   v[1] / mag]
+end
+
+def random_direction_2d
+  unit_circle_pt(rand(0.0..1.0))
+end
+
+def unit_circle_pt(dist)
+t = (2.0 * Math::PI) * dist
+[Math.cos(t), Math.sin(t)]
+end
+
+def random_image_pixel(img, origin, dist_range=nil, ignore_color=0, ignore_cutoff=20)
+  color = nil
+  pos = nil
+  distance = nil
+  ignores = 0
+  origin = [origin[0].to_f, origin[1].to_f]
+  if dist_range.nil?
+    dist_range = (1.0..mag2d([img.dimension.width - 1.0, img.dimension.height - 1.0]))
+  else
+    dist_range = (dist_range.first.to_f..dist_range.last.to_f)
+  end
+  while true
+    ignores += 1
+    direction = random_direction_2d
+    distance = rand(dist_range)
+    pos = point_along_line_2d(origin, direction, distance)
+    pos = [pos[0].round, pos[1].round]
+    next if pos[0] < 0 || pos[0] >= img.dimension.width ||
+             pos[1] < 0 || pos[1] >= img.dimension.height
+    color = img[pos[0], pos[1]]
+    next if !ignore_color.nil? && color == ignore_color
+    return nil if ignores >= ignore_cutoff
+    break
+  end
+  [color, pos, distance]
+end
+
 def orientation_percent_error(expected, actual)
   ((((expected[0].to_f - actual[0].to_f) / 1.0).abs +
   ((expected[1].to_f - actual[1].to_f) / 1.0).abs +
