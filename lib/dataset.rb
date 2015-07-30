@@ -284,8 +284,8 @@ class Dataset
     model_sym = pose[:model]
     pose[:model] = Dataset.model_path(pose[:model]) if pose[:model].is_a? Symbol
     if pose[:autocrop]
-      rw = (pose[:width] * 10.0).round
-      rh = (pose[:height] * 10.0).round
+      rw = (pose[:width] * 7.0).round
+      rh = (pose[:height] * 7.0).round
       sw = pose[:width]
       sh = pose[:height]
     end

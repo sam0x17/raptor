@@ -1,0 +1,3 @@
+class SpatialScatteringHash
+
+end

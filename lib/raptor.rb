@@ -7,6 +7,7 @@ require 'kmeans_intensity'
 require 'intensity_space'
 require 'dataset'
 require 'grid_hash'
+require 'spatial_scattering_hash'
 require 'rcolor'
 
 Dataset.register_model :hamina, 'data/models/hamina_no_antenna.3ds'
@@ -14,18 +15,21 @@ Dataset.register_model :kirov, 'data/models/Kirov.3ds'
 Dataset.register_model :kuznet, 'data/models/Kuznet.3ds'
 Dataset.register_model :sovddg, 'data/models/SovDDG.3ds'
 Dataset.register_model :udaloy, 'data/models/Udaloy_l.3ds'
+Dataset.register_model :halifax, 'data/models/Halifax.3ds'
 
 Dataset.register_model :m4a1_s, 'data/models/m4a1.3ds'
 
 Dataset.register_model :sphere, 'data/models/sphere.3ds'
 
-def super_experiment(m_vals=[5,10,15,20,25,30,35])
+def super_experiment(m_vals=[5,10,15,20,25,30,35,40,45,50])
   writeline = Proc.new {|line, model| open("results-#{model}.txt", 'a') { |f| f.puts(line) }}
-  models = [:m4a1_s, :udaloy, :kuznet, :kirov, :sovddg, :hamina]
+  models = [:m4a1_s, :udaloy, :kuznet, :kirov, :sovddg, :halifax, :hamina]
   m_vals.each do |m|
     models.each do |model|
       puts "beginning tests for #{model}..."
-      results = experiment(1000, m: m, model: model)
+      results = experiment(1000, m: m, model: model, autocrop: false)
+      writeline.("#{results}", model)
+      results = experiment(1000, m: m, model: model, autocrop: true)
       writeline.("#{results}", model)
     end
   end

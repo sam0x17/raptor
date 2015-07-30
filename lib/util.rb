@@ -27,6 +27,17 @@ def norm2d(v)
    v[1] / mag]
 end
 
+def mag3d(v)
+  Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2])
+end
+
+def norm3d(v)
+  mag = mag3d(v)
+  [v[0] / mag,
+   v[1] / mag,
+   v[2] / mag]
+end
+
 def random_direction_2d
   unit_circle_pt(rand(0.0..1.0))
 end
@@ -34,6 +45,26 @@ end
 def unit_circle_pt(dist)
 t = (2.0 * Math::PI) * dist
 [Math.cos(t), Math.sin(t)]
+end
+
+def dot3d(v1, v2)
+  v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
+end
+
+def spherical_distance(v1, v2)
+  Math.acos(dot3d(v1, v2))
+end
+
+def special_to_sphere(spec)
+  norm3d([Math.cos(spec[0] * Math::PI),
+          Math.cos(spec[1] * Math::PI),
+          Math.cos(spec[2] * Math::PI)])
+end
+
+def sphere_to_special(v)
+  [spherical_distance(v, [1.0, 0.0, 0.0]) / Math::PI,
+   spherical_distance(v, [0.0, 1.0, 0.0]) / Math::PI,
+   spherical_distance(v, [0.0, 0.0, 1.0]) / Math::PI]
 end
 
 def random_image_pixel(img, origin, dist_range=nil, ignore_color=0, ignore_cutoff=20)

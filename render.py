@@ -181,8 +181,7 @@ view3d = bpy.context.screen.areas[areas['VIEW_3D']].spaces[0]
 
 # fit model to viewport
 compute_bb()
-scale_factor = 2.0 * (2.0 / max_dim)
-#scale_factor = 2.0 * max_dim
+scale_factor = 8.4 / max_dim
 view3d.pivot_point = "CURSOR"
 view3d.cursor_location = center_world
 for obj in bpy.context.selected_objects:
