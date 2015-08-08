@@ -97,7 +97,7 @@ def experiment(num_test_samples=500, options={})
     min_err = percent_error if percent_error < min_err
     max_err = percent_error if percent_error > max_err
     avg_err_tmp = avg_err / num_done.to_f
-    puts "#{num_done}/#{test_set.size} (#{orientation_id}) #{(percent_error * 100).round(3)}% #{expected_st}  => #{actual_st}"
+    puts "#{num_done}/#{test_set.size} (#{orientation_id}) #{(percent_error * 100).round(3)}% #{expected_st} => #{actual_st} (train-#{actual[:id]} : #{actual[:confidence]})"
   end
   puts "Ran #{test_set.size} tests!"
   avg_err /= test_set.size.to_f
