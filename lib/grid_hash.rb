@@ -1,6 +1,6 @@
 class GridHash
 
-  def initialize(dataset, verbose=true)
+  def initialize(dataset, num_centroids=10, verbose=true)
     intensities = {}
     i = 0
     grads = []
@@ -23,10 +23,10 @@ class GridHash
     end
     intensities = intensities.keys
     puts "" if verbose
-    puts "Creating intensity space" if verbose
-    @intensity_space = IntensitySpace.new(intensities)
-    #puts "Running k-means..." if verbose
-    #@kmeans = KMeansIntensity.new(intensities, num_centroids)
+    #puts "Creating intensity space" if verbose
+    #@intensity_space = IntensitySpace.new(intensities)
+    puts "Running k-means..." if verbose
+    @kmeans = KMeansIntensity.new(intensities, num_centroids)
     @grid = {}
     @orientations = {}
     puts "Collecting per-pixel pose information..."
@@ -47,10 +47,10 @@ class GridHash
       width.times do |x|
         height.times do |y|
           next if grad[[x, y]] == nil
-          #intensity = @kmeans.closest_intensity(grad[[x, y]])
-          #intensity_diff = intensity[1]
-          #intensity = intensity[0]
-          intensity = @intensity_space.closest_intensity(grad[[x, y]])
+          intensity = @kmeans.closest_intensity(grad[[x, y]])
+          intensity_diff = intensity[1]
+          intensity = intensity[0]
+          #intensity = @intensity_space.closest_intensity(grad[[x, y]])
           key = [x, y, intensity]
           @grid[key] = [] if !@grid.has_key?(key)
           orientation = [rx, ry, rz]
@@ -101,8 +101,9 @@ class GridHash
           avg_diff += (color_bytes[2] - orig_color_bytes[2]).abs.to_f
         end
         avg_diff /= points.size.to_f * 3.0
-        #@kmeans.closest_intensity(avg_diff.round)[0]
-        orientations = @grid[[x, y, @intensity_space.closest_intensity(avg_diff.round)]]
+        closest = @kmeans.closest_intensity(avg_diff.round)[0]
+        #closest =  @intensity_space.closest_intensity(avg_diff.round)
+        orientations = @grid[[x, y, closest]]
         next if orientations.nil?
         orientations.each do |orientation_id|
           counts[orientation_id] += 1
