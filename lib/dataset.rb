@@ -160,12 +160,12 @@ class Dataset
       @img_paths << file
     end
     @img_paths.sort!
-    puts "Pre-loading images" if verbose?
-    @imgs = []
-    @img_paths.each do |img_path|
-      @imgs << ChunkyPNG::Image.from_file(img_path)
-    end
-    puts "Successfully rendered & loaded #{final_set.size} samples!" if verbose?
+    #puts "Pre-loading images" if verbose?
+    #@imgs = []
+    #@img_paths.each do |img_path|
+    #  @imgs << ChunkyPNG::Image.from_file(img_path)
+    #end
+    puts "Successfully rendered #{final_set.size} samples!" if verbose?
     puts "On-disk file size: #{(directory_size(@imgs_dir) / 1000.0 / 1000.0).round(3)} mb"
     true
   end
