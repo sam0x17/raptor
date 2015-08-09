@@ -8,6 +8,7 @@ GEM
       CFPropertyList (~> 2.2.6)
     oily_png (1.2.0)
       chunky_png (~> 1.3.1)
+    rmagick (2.15.3)
 
 PLATFORMS
   ruby
@@ -17,3 +18,4 @@ DEPENDENCIES
   color
   facter
   oily_png
+  rmagick
