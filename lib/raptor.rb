@@ -28,8 +28,8 @@ def super_experiment(m_vals=[5,10,15,20,25,30,35,40,45,50])
   m_vals.each do |m|
     models.each do |model|
       puts "beginning tests for #{model}..."
-      results = experiment(1000, m: m, model: model, autocrop: false)
-      writeline.("#{results}", model)
+      #results = experiment(1000, m: m, model: model, autocrop: false)
+      #writeline.("#{results}", model)
       results = experiment(1000, m: m, model: model, autocrop: true)
       writeline.("#{results}", model)
     end

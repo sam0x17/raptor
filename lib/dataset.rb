@@ -284,8 +284,8 @@ class Dataset
     model_sym = pose[:model]
     pose[:model] = Dataset.model_path(pose[:model]) if pose[:model].is_a? Symbol
     if pose[:autocrop]
-      rw = (pose[:width] * 7.0).round
-      rh = (pose[:height] * 7.0).round
+      rw = (pose[:width] * 5.0).round
+      rh = (pose[:height] * 5.0).round
       sw = pose[:width]
       sh = pose[:height]
     end
@@ -294,42 +294,41 @@ class Dataset
             "width" => rw.to_s, "height" => rh.to_s,
             "img_filename" => pose[:img_filename]},
             'blender -b -noaudio -P render.py > /dev/null')
-    img = ChunkyPNG::Image.from_file(pose[:img_filename])
-    img.metadata['model'] = model_sym.to_s
     if pose[:autocrop]
+      img = Magick::Image::read(pose[:img_filename]).first
       dest_w = pose[:width]
       dest_h = pose[:height]
-      orig_w = img.dimension.width
-      orig_h = img.dimension.height
-      img.trim!(0)
-      crop_w = img.dimension.width
-      crop_h = img.dimension.height
-      resize_bounds = smart_resize_bounds(img.dimension.width,
-                                          img.dimension.height,
-                                          sw,
-                                          sh)
-      resize_w = img.dimension.width
-      resize_h = img.dimension.height
-      resize_factor_x = (img.dimension.width.to_f / resize_bounds[:w].to_f).to_s
-      resize_factor_y = img.metadata['resize_factor_y'] = (img.dimension.height.to_f / resize_bounds[:h].to_f).to_s
-      img.resample_bilinear!(resize_bounds[:w], resize_bounds[:h])
-      img2 = ChunkyPNG::Image.new(sw, sh)
-      img2.compose!(img, resize_bounds[:x], resize_bounds[:y])
-      img = img2
+      orig_w = img.columns
+      orig_h = img.rows
+      img.trim!
+      crop_w = img.columns
+      crop_h = img.rows
+      resize_bounds = smart_resize_bounds(crop_w, crop_h, sw, sh)
+      img.resize!(resize_bounds[:w], resize_bounds[:h])
+      img2 = Magick::Image.new(sw, sh) {|c| c.background_color = "Transparent"}
+      img = img2.composite(img, Magick::CenterGravity, Magick::OverCompositeOp)
       img2 = nil
-      img.metadata['orig_w'] = orig_w.to_s
-      img.metadata['orig_h'] = orig_h.to_s
-      img.metadata['crop_w'] = crop_w.to_s
-      img.metadata['crop_h'] = crop_h.to_s
-      img.metadata['resize_x'] = resize_bounds[:x].to_s
-      img.metadata['resize_y'] = resize_bounds[:y].to_s
-      img.metadata['resize_w'] = resize_bounds[:w].to_s
-      img.metadata['resize_h'] = resize_bounds[:h].to_s
+      img['orig_w'] = orig_w.to_s
+      img['orig_h'] = orig_h.to_s
+      img['crop_w'] = crop_w.to_s
+      img['crop_h'] = crop_h.to_s
+      img['resize_x'] = resize_bounds[:x].to_s
+      img['resize_y'] = resize_bounds[:y].to_s
+      img['resize_w'] = resize_bounds[:w].to_s
+      img['resize_h'] = resize_bounds[:h].to_s
+      img['model'] = model_sym.to_s
+      img['rx'] = pose[:rx].to_s
+      img['ry'] = pose[:ry].to_s
+      img['rz'] = pose[:rz].to_s
+      img.write(pose[:img_filename])
+    else
+      img = ChunkyPNG::Image.from_file(pose[:img_filename])
+      img.metadata['model'] = model_sym.to_s
+      img.metadata['rx'] = pose[:rx].to_s
+      img.metadata['ry'] = pose[:ry].to_s
+      img.metadata['rz'] = pose[:rz].to_s
+      img.save(pose[:img_filename])
     end
-    img.metadata['rx'] = pose[:rx].to_s
-    img.metadata['ry'] = pose[:ry].to_s
-    img.metadata['rz'] = pose[:rz].to_s
-    img.save(pose[:img_filename])
     pose
   end
 
