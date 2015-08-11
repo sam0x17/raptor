@@ -83,6 +83,8 @@ class GridHash
     end
     width = img.dimension.width
     height = img.dimension.height
+    best_count = 0
+    best_orientation_id = nil
     width.times do |x|
       height.times do |y|
         orig_color = img[x, y]
@@ -101,12 +103,18 @@ class GridHash
           avg_diff += (color_bytes[2] - orig_color_bytes[2]).abs.to_f
         end
         avg_diff /= points.size.to_f * 3.0
-        closest = @kmeans.closest_intensity(avg_diff.round)[0]
+        avg_diff = avg_diff.round
+        closest = @kmeans.closest_intensity(avg_diff)[0]
         #closest =  @intensity_space.closest_intensity(avg_diff.round)
         orientations = @grid[[x, y, closest]]
         next if orientations.nil?
         orientations.each do |orientation_id|
           counts[orientation_id] += 1
+          count = counts[orientation_id]
+          if count > best_count
+            best_orientation_id = orientation_id
+            best_count = count
+          end
         end
       end
     end
@@ -118,14 +126,6 @@ class GridHash
         ret << {orientation: orientation, id: orientation_id, confidence: count}
       end
       return ret
-    end
-    best_count = 0
-    best_orientation_id = nil
-    counts.each do |orientation_id, count|
-      if count > best_count
-        best_orientation_id = orientation_id
-        best_count = count
-      end
     end
     best_orientation = @orientations_inverted[best_orientation_id]
     return {orientation: best_orientation, id: best_orientation_id, confidence: best_count}
