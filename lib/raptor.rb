@@ -22,7 +22,7 @@ Dataset.register_model :m4a1_s, 'data/models/m4a1.3ds'
 
 Dataset.register_model :sphere, 'data/models/sphere.3ds'
 
-def super_experiment(m_vals=[5,10,15,20,25,30,35,40,45,50])
+def super_experiment(m_vals=[5,10,15,20,25,35,40,45,50])
   writeline = Proc.new {|line, model| open("results-#{model}.txt", 'a') { |f| f.puts(line) }}
   models = [:m4a1_s, :udaloy, :kuznet, :kirov, :sovddg, :halifax, :hamina]
   m_vals.each do |m|
@@ -31,6 +31,7 @@ def super_experiment(m_vals=[5,10,15,20,25,30,35,40,45,50])
       #results = experiment(1000, m: m, model: model, autocrop: false)
       #writeline.("#{results}", model)
       results = experiment(1000, m: m, model: model, autocrop: true)
+      #dataset = Dataset.new(m: m, model: model, autocrop: true)
       writeline.("#{results}", model)
     end
   end
