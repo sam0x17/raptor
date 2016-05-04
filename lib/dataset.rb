@@ -47,8 +47,8 @@ class Dataset
     set_default = Proc.new {|key,value| data_options[key] = value if !data_options.has_key?(key) }
     set_default.(:m, 5) # num samples ^ (1/3)
     set_default.(:model, :hamina) # default model symbol to use (can be registered with register_model)
-    set_default.(:width, 60) # width of rendered images
-    set_default.(:height, 60) # height of rendered images
+    set_default.(:width, 128) # width of rendered images
+    set_default.(:height, 128) # height of rendered images
     set_default.(:autocrop, true) # whether autocropping should be used
     set_default.(:verbose, true) # whether verbose status messages should be displayed
     set_default.(:imgs_dir, Dataset.get_imgs_dir(data_options))
@@ -83,7 +83,7 @@ class Dataset
     puts "Total samples: #{final_set.size}" if verbose?
 
     # spread out poses over available CPU cores
-    num_cores = Facter.value('processors')['count']
+    num_cores = Facter.value('processors')['count'] - 2
     last_core = 0
     core_sets = {}
     num_cores.times {|core_num| core_sets[core_num] = {} }
@@ -151,7 +151,7 @@ class Dataset
       end
     end
     threads.each {|t| t.join}
-    sleep(0.0001)
+    sleep(0.0010)
     $stdout.flush
     puts "" if verbose?
     puts "Sorting image paths" if verbose?
@@ -175,8 +175,8 @@ class Dataset
     data_options = data_options.clone
     set_default = Proc.new {|key,value| data_options[key] = value if !data_options.has_key?(key) }
     set_default.(:model, :hamina) # default model symbol to use (can be registered with register_model)
-    set_default.(:width, 60) # width of rendered image
-    set_default.(:height, 60) # height of rendered images
+    set_default.(:width, 128) # width of rendered image
+    set_default.(:height, 128) # height of rendered images
     set_default.(:autocrop, true) # whether autocropping should be used
     set_default.(:verbose, true) # whether verbose status messages should be displayed
 
@@ -195,7 +195,7 @@ class Dataset
     puts "Total samples: #{final_set.size}" if data_options[:verbose]
 
     # spread out poses over available CPU cores
-    num_cores = Facter.value('processors')['count']
+    num_cores = Facter.value('processors')['count'] - 2
     last_core = 0
     core_sets = {}
     num_cores.times {|core_num| core_sets[core_num] = {} }
@@ -263,7 +263,7 @@ class Dataset
       end
     end
     threads.each {|t| t.join}
-    sleep(0.0001)
+    sleep(0.0010)
     $stdout.flush
     imgs = []
     puts ""

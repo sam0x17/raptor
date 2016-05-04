@@ -8,8 +8,6 @@ require 'kmeans_intensity'
 require 'intensity_space'
 require 'dataset'
 require 'grid_hash'
-require 'spatial_scattering_hash'
-require 'rcolor'
 
 Dataset.register_model :hamina, 'data/models/hamina_no_antenna.3ds'
 Dataset.register_model :kirov, 'data/models/Kirov.3ds'
@@ -22,7 +20,7 @@ Dataset.register_model :m4a1_s, 'data/models/m4a1.3ds'
 
 Dataset.register_model :sphere, 'data/models/sphere.3ds'
 
-def super_experiment(m_vals=[5,10,15,20,25,35,40,45,50])
+def super_experiment(m_vals=[30])
   writeline = Proc.new {|line, model| open("results-#{model}.txt", 'a') { |f| f.puts(line) }}
   models = [:m4a1_s, :udaloy, :kuznet, :kirov, :sovddg, :halifax, :hamina]
   m_vals.each do |m|
@@ -48,23 +46,18 @@ def experiment(num_test_samples=500, options={})
   dataset = Dataset.new(options)
 
   # create grid hash from data
-  puts "Constructing grid hash"
-  gh = GridHash.new(dataset)
-  output_dir = "data/results/#{File.basename(dataset.imgs_dir)}"
+  #puts "Constructing grid hash"
+  #gh = GridHash.new(dataset)
+  #output_dir = "data/results/#{File.basename(dataset.imgs_dir)}"
 
   # delete existing results data
-  puts "Result data will be output to '#{output_dir}'..."
-  puts "Deleting existing results" if Dir.exist?(output_dir)
-  FileUtils.rm_rf(output_dir) if Dir.exist?(output_dir)
-  Dir.mkdir(output_dir)
-
-  puts "Performing garbage collection"
-  GC.start
-  puts "Disabling garbage collection"
-  GC.disable
+  #puts "Result data will be output to '#{output_dir}'..."
+  #puts "Deleting existing results" if Dir.exist?(output_dir)
+  #FileUtils.rm_rf(output_dir) if Dir.exist?(output_dir)
+  #Dir.mkdir(output_dir)
   # spread out tests over available CPU cores
-  puts "Running tests"
-
+  #puts "Running tests"
+=begin
   max_width = 80
   avg_id_time = 0.0
   num_done = 0
@@ -109,6 +102,6 @@ def experiment(num_test_samples=500, options={})
   avg_id_time /= test_set.size.to_f
   puts "Average id time: #{(avg_id_time * 1000.0).round(4)} ms"
   puts "Re-enabling garbage collection"
-  GC.enable
   {model: options[:model], m: options[:m], average_error: avg_err, average_id_time: avg_id_time, min_error: min_err, max_error: max_err}
+=end
 end
